@@ -1,0 +1,20 @@
+[
+  {
+    "updated_at": "2026-04-27T07:00:00Z",
+    "scores": [
+      { "name": "OpenAI",     "score": 67, "delta":  2, "badge": "quiet"     },
+      { "name": "Anthropic",  "score": 73, "delta":  4, "badge": "agents"    },
+      { "name": "DeepSeek",   "score": 67, "delta":  1, "badge": "open model"},
+      { "name": "Perplexity", "score": 64, "delta": -1, "badge": "quiet"     }
+    ]
+  },
+  {
+    "updated_at": "2026-04-27T19:00:00Z",
+    "scores": [
+      { "name": "OpenAI",     "score": 72, "delta":  5, "badge": "agents"     },
+      { "name": "Anthropic",  "score": 81, "delta":  8, "badge": "release"    },
+      { "name": "DeepSeek",   "score": 64, "delta": -3, "badge": "open model" },
+      { "name": "Perplexity", "score": 58, "delta": -6, "badge": "regulatory" }
+    ]
+  }
+]

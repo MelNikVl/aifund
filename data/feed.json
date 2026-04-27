@@ -1,0 +1,64 @@
+{
+  "updated_at": "2026-04-27T19:00:00Z",
+  "scores": [
+    {
+      "name": "OpenAI",
+      "score": 72,
+      "delta": 5,
+      "badge": "agents"
+    },
+    {
+      "name": "Anthropic",
+      "score": 81,
+      "delta": 8,
+      "badge": "release"
+    },
+    {
+      "name": "DeepSeek",
+      "score": 64,
+      "delta": -3,
+      "badge": "open model"
+    },
+    {
+      "name": "Perplexity",
+      "score": 58,
+      "delta": -6,
+      "badge": "regulatory"
+    }
+  ],
+  "signals": [
+    {
+      "company": "Anthropic",
+      "text": "Claude 4 Sonnet benchmarks leak ahead of official launch, showing strong coding and reasoning gains over prior generation.",
+      "tag": "release"
+    },
+    {
+      "company": "OpenAI",
+      "text": "Operator API for autonomous agents enters public beta; early adopters report 40% task completion rates on complex workflows.",
+      "tag": "agents"
+    },
+    {
+      "company": "DeepSeek",
+      "text": "DeepSeek-V3 weights released under MIT license, sparking immediate fine-tune wave across HuggingFace.",
+      "tag": "open model"
+    },
+    {
+      "company": "Perplexity",
+      "text": "EU regulators open preliminary inquiry into Perplexity's publisher content practices; company says it will cooperate.",
+      "tag": "regulatory"
+    },
+    {
+      "company": "HuggingFace",
+      "text": "SmolLM3 series drops — sub-1B models that outperform GPT-3.5 on select benchmarks, optimized for edge devices.",
+      "tag": "open model"
+    }
+  ],
+  "winner": {
+    "name": "Anthropic",
+    "text": "Anthropic is having a week — leaked benchmarks, bullish analyst notes, and a suspiciously timed coffee sponsorship at NeurIPS."
+  },
+  "loser": {
+    "name": "Perplexity",
+    "text": "Perplexity managed to annoy European regulators and publishers simultaneously, a rare double achievement in self-inflicted PR damage."
+  }
+}
