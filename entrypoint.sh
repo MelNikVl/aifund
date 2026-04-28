@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+echo "Running initial update..."
+cd /app && python scripts/update.py
+
+echo "0 */12 * * * cd /app && python scripts/update.py >> /var/log/aifund.log 2>&1" | crontab -
+
+echo "Starting cron daemon..."
+cron -f

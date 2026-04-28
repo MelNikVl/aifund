@@ -25,7 +25,8 @@ except ImportError:
 
 FEEDS = [
     "https://openai.com/news/rss.xml",
-    "https://www.anthropic.com/rss.xml",
+    "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
+    "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml",
     "https://huggingface.co/blog/feed.xml",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
     "https://hnrss.org/frontpage?q=AI+LLM+Claude+GPT+DeepSeek&count=20",
@@ -206,7 +207,7 @@ def analyse_with_claude(news_block: str) -> dict:
     )
 
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=1024,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_msg}],
@@ -224,6 +225,7 @@ def analyse_with_claude(news_block: str) -> dict:
 def save_feed(data: dict) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     FEED_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    generate_static_html(data)
     print(f"  wrote {FEED_FILE}", file=sys.stderr)
 
 
@@ -281,5 +283,47 @@ def main() -> None:
     print("done.", file=sys.stderr)
 
 
+
+def generate_static_html(data: dict):
+    signals_html = ""
+    for s in data.get("signals", []):
+        signals_html += f'<li><strong>{s.get("company","")}</strong>: {s.get("text","")}</li>\n'
+
+    scores_html = ""
+    for info in data.get("scores", []):
+        name = info.get("name", info.get("company", ""))
+        scores_html += f'<li>{name}: {info.get("score","?")} ({info.get("badge","")})</li>\n'
+
+    winner = data.get("winner", {})
+    loser = data.get("loser", {})
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Pulse — Daily AI Industry Momentum</title>
+<meta name="description" content="Daily momentum scores for OpenAI, Anthropic, DeepSeek and Perplexity based on latest AI news.">
+<link rel="canonical" href="https://app.ai-groundtruth.com/">
+</head>
+<body>
+<h1>AI Pulse — AI Industry Momentum</h1>
+<p>Updated: {data.get("updated","")}</p>
+<h2>Scores</h2>
+<ul>{scores_html}</ul>
+<h2>Top Signals</h2>
+<ul>{signals_html}</ul>
+<h2>Winner of the day: {winner.get("name","")}</h2>
+<p>{winner.get("reason","")}</p>
+<h2>Loser of the day: {loser.get("name","")}</h2>
+<p>{loser.get("reason","")}</p>
+<p><a href="/">View live dashboard</a></p>
+</body>
+</html>"""
+
+    with open("data/seo.html", "w") as f:
+        f.write(html)
+    print("  static seo.html generated")
+
 if __name__ == "__main__":
     main()
+

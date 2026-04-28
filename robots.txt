@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://app.ai-groundtruth.com/sitemap.xml

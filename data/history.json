@@ -2,19 +2,204 @@
   {
     "updated_at": "2026-04-27T07:00:00Z",
     "scores": [
-      { "name": "OpenAI",     "score": 67, "delta":  2, "badge": "quiet"     },
-      { "name": "Anthropic",  "score": 73, "delta":  4, "badge": "agents"    },
-      { "name": "DeepSeek",   "score": 67, "delta":  1, "badge": "open model"},
-      { "name": "Perplexity", "score": 64, "delta": -1, "badge": "quiet"     }
+      {
+        "name": "OpenAI",
+        "score": 67,
+        "delta": 2,
+        "badge": "quiet"
+      },
+      {
+        "name": "Anthropic",
+        "score": 73,
+        "delta": 4,
+        "badge": "agents"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 67,
+        "delta": 1,
+        "badge": "open model"
+      },
+      {
+        "name": "Perplexity",
+        "score": 64,
+        "delta": -1,
+        "badge": "quiet"
+      }
     ]
   },
   {
     "updated_at": "2026-04-27T19:00:00Z",
     "scores": [
-      { "name": "OpenAI",     "score": 72, "delta":  5, "badge": "agents"     },
-      { "name": "Anthropic",  "score": 81, "delta":  8, "badge": "release"    },
-      { "name": "DeepSeek",   "score": 64, "delta": -3, "badge": "open model" },
-      { "name": "Perplexity", "score": 58, "delta": -6, "badge": "regulatory" }
+      {
+        "name": "OpenAI",
+        "score": 72,
+        "delta": 5,
+        "badge": "agents"
+      },
+      {
+        "name": "Anthropic",
+        "score": 81,
+        "delta": 8,
+        "badge": "release"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 64,
+        "delta": -3,
+        "badge": "open model"
+      },
+      {
+        "name": "Perplexity",
+        "score": 58,
+        "delta": -6,
+        "badge": "regulatory"
+      }
+    ]
+  },
+  {
+    "updated_at": "2026-04-28T02:03:45+00:00",
+    "scores": [
+      {
+        "name": "OpenAI",
+        "score": 92,
+        "delta": 10,
+        "badge": "release"
+      },
+      {
+        "name": "Anthropic",
+        "score": 48,
+        "delta": -2,
+        "badge": "quiet"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 50,
+        "delta": 0,
+        "badge": "quiet"
+      },
+      {
+        "name": "Perplexity",
+        "score": 49,
+        "delta": -1,
+        "badge": "quiet"
+      }
+    ]
+  },
+  {
+    "updated_at": "2026-04-28T02:43:26Z",
+    "scores": [
+      {
+        "name": "OpenAI",
+        "score": 92,
+        "delta": 10,
+        "badge": "release"
+      },
+      {
+        "name": "Anthropic",
+        "score": 48,
+        "delta": -2,
+        "badge": "quiet"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 50,
+        "delta": 0,
+        "badge": "quiet"
+      },
+      {
+        "name": "Perplexity",
+        "score": 49,
+        "delta": -1,
+        "badge": "quiet"
+      }
+    ]
+  },
+  {
+    "updated_at": "2026-04-28T02:43:32Z",
+    "scores": [
+      {
+        "name": "OpenAI",
+        "score": 92,
+        "delta": 10,
+        "badge": "release"
+      },
+      {
+        "name": "Anthropic",
+        "score": 48,
+        "delta": -2,
+        "badge": "quiet"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 50,
+        "delta": 0,
+        "badge": "quiet"
+      },
+      {
+        "name": "Perplexity",
+        "score": 49,
+        "delta": -1,
+        "badge": "quiet"
+      }
+    ]
+  },
+  {
+    "updated_at": "2026-04-28T02:48:55+00:00",
+    "scores": [
+      {
+        "name": "OpenAI",
+        "score": 92,
+        "delta": 42,
+        "badge": "release"
+      },
+      {
+        "name": "Anthropic",
+        "score": 48,
+        "delta": -2,
+        "badge": "quiet"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 50,
+        "delta": 0,
+        "badge": "quiet"
+      },
+      {
+        "name": "Perplexity",
+        "score": 49,
+        "delta": -1,
+        "badge": "quiet"
+      }
+    ]
+  },
+  {
+    "updated_at": "2026-04-28T02:48:54Z",
+    "scores": [
+      {
+        "name": "OpenAI",
+        "score": 92,
+        "delta": 10,
+        "badge": "release"
+      },
+      {
+        "name": "Anthropic",
+        "score": 48,
+        "delta": -2,
+        "badge": "quiet"
+      },
+      {
+        "name": "DeepSeek",
+        "score": 50,
+        "delta": 0,
+        "badge": "quiet"
+      },
+      {
+        "name": "Perplexity",
+        "score": 49,
+        "delta": -1,
+        "badge": "quiet"
+      }
     ]
   }
 ]

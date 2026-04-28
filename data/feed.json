@@ -1,64 +1,64 @@
 {
-  "updated_at": "2026-04-27T19:00:00Z",
+  "updated_at": "2026-04-28T02:48:54Z",
   "scores": [
     {
       "name": "OpenAI",
-      "score": 72,
-      "delta": 5,
-      "badge": "agents"
-    },
-    {
-      "name": "Anthropic",
-      "score": 81,
-      "delta": 8,
+      "score": 92,
+      "delta": 10,
       "badge": "release"
     },
     {
+      "name": "Anthropic",
+      "score": 48,
+      "delta": -2,
+      "badge": "quiet"
+    },
+    {
       "name": "DeepSeek",
-      "score": 64,
-      "delta": -3,
-      "badge": "open model"
+      "score": 50,
+      "delta": 0,
+      "badge": "quiet"
     },
     {
       "name": "Perplexity",
-      "score": 58,
-      "delta": -6,
-      "badge": "regulatory"
+      "score": 49,
+      "delta": -1,
+      "badge": "quiet"
     }
   ],
   "signals": [
     {
-      "company": "Anthropic",
-      "text": "Claude 4 Sonnet benchmarks leak ahead of official launch, showing strong coding and reasoning gains over prior generation.",
+      "company": "OpenAI",
+      "text": "GPT-5.5 launch + Codex enterprise rollout (4M WAU) + FedRAMP authorization = major product cycle",
       "tag": "release"
     },
     {
       "company": "OpenAI",
-      "text": "Operator API for autonomous agents enters public beta; early adopters report 40% task completion rates on complex workflows.",
+      "text": "Workspace agents, Privacy Filter open-weight model, and GPT-Rosalind for life sciences signal vertical expansion",
       "tag": "agents"
     },
     {
-      "company": "DeepSeek",
-      "text": "DeepSeek-V3 weights released under MIT license, sparking immediate fine-tune wave across HuggingFace.",
-      "tag": "open model"
+      "company": "OpenAI",
+      "text": "Microsoft partnership amendment and Cloudflare/Accenture/PwC enterprise partnerships solidify infrastructure dominance",
+      "tag": "partnerships"
     },
     {
-      "company": "Perplexity",
-      "text": "EU regulators open preliminary inquiry into Perplexity's publisher content practices; company says it will cooperate.",
+      "company": "OpenAI",
+      "text": "GPT-5.4-Cyber with $10M grants and bio bug bounty show aggressive safety theater amid capability scaling",
       "tag": "regulatory"
     },
     {
-      "company": "HuggingFace",
-      "text": "SmolLM3 series drops — sub-1B models that outperform GPT-3.5 on select benchmarks, optimized for edge devices.",
-      "tag": "open model"
+      "company": "Anthropic",
+      "text": "Complete radio silence during OpenAI's multi-vertical blitz suggests either strategic patience or momentum loss",
+      "tag": "positioning"
     }
   ],
   "winner": {
-    "name": "Anthropic",
-    "text": "Anthropic is having a week — leaked benchmarks, bullish analyst notes, and a suspiciously timed coffee sponsorship at NeurIPS."
+    "name": "OpenAI",
+    "text": "Released more products in one day than some competitors ship in a quarter—apparently subtlety is for companies without FedRAMP authorization."
   },
   "loser": {
-    "name": "Perplexity",
-    "text": "Perplexity managed to annoy European regulators and publishers simultaneously, a rare double achievement in self-inflicted PR damage."
+    "name": "Anthropic",
+    "text": "While OpenAI announced 40 things, Anthropic perfected the art of constitutional silence—very on-brand, just not very loud."
   }
 }
