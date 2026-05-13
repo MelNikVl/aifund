@@ -24,16 +24,33 @@ except ImportError:
 # ── Config ───────────────────────────────────────────────────────────────────
 
 FEEDS = [
+    # Core AI labs
     "https://openai.com/news/rss.xml",
     "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
     "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml",
     "https://huggingface.co/blog/feed.xml",
+    # Google
+    "https://blog.google/technology/ai/rss/",
+    # Meta / xAI / Mistral via community RSS mirrors
+    "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_meta_ai.xml",
+    "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_xai_news.xml",
+    "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_mistral_news.xml",
+    # Tech media
+    "https://www.theverge.com/rss/index.xml",
+    "https://venturebeat.com/category/ai/feed/",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
-    "https://hnrss.org/frontpage?q=AI+LLM+Claude+GPT+DeepSeek&count=20",
+    "https://wired.com/feed/rss",
+    # Reddit AI communities
+    "https://www.reddit.com/r/MachineLearning/.rss",
+    "https://www.reddit.com/r/artificial/.rss",
+    "https://www.reddit.com/r/OpenAI/.rss",
+    "https://www.reddit.com/r/LocalLLaMA/.rss",
+    # Hacker News
+    "https://hnrss.org/frontpage?q=AI+LLM+Claude+GPT+DeepSeek+Gemini+Llama+Mistral&count=30",
 ]
 
-LOOKBACK_HOURS = 12
-MAX_ITEMS = 40
+LOOKBACK_HOURS = 48
+MAX_ITEMS = 60
 SIMILARITY_THRESHOLD = 0.6
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -48,18 +65,23 @@ and summaries, return a JSON object with this exact structure:
   "scores": [
     { "name": "OpenAI",     "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
     { "name": "Anthropic",  "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
+    { "name": "Google",     "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
+    { "name": "Meta",       "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
     { "name": "DeepSeek",   "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
+    { "name": "Mistral",    "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
+    { "name": "xAI",        "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
     { "name": "Perplexity", "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" }
   ],
   "signals": [
-    { "company": "...", "text": "...one line max...", "tag": "..." },
-    ... 3-5 items
+    { "company": "...", "text": "...one line max...", "tag": "...", "date": "YYYY-MM-DD" },
+    ... 5-8 items
   ],
   "winner": { "name": "...", "text": "...one sentence, slightly ironic..." },
   "loser":  { "name": "...", "text": "...one sentence, slightly ironic..." }
 }
 Score logic: higher = more positive news momentum today.
 Delta = change from neutral baseline (50) if no prior data is available.
+For signals, use the actual publication date of the news item if available, otherwise use today's date.
 Return only valid JSON, no markdown."""
 
 
@@ -79,7 +101,6 @@ def fetch_url(url: str, timeout: int = 15) -> bytes | None:
 def parse_date(date_str: str | None) -> datetime | None:
     if not date_str:
         return None
-    # Try common RSS date formats
     formats = [
         "%a, %d %b %Y %H:%M:%S %z",
         "%a, %d %b %Y %H:%M:%S %Z",
@@ -95,12 +116,16 @@ def parse_date(date_str: str | None) -> datetime | None:
     return None
 
 
+def format_date_iso(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    return dt.strftime("%Y-%m-%d")
+
+
 def extract_text(element) -> str:
-    """Return text from an XML element, stripping HTML tags."""
     if element is None:
         return ""
     text = element.text or ""
-    # Strip simple HTML tags
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text[:300]
@@ -113,26 +138,27 @@ def parse_feed(raw: bytes) -> list[dict]:
     except ET.ParseError:
         return items
 
-    ns = {}
-    # Detect Atom vs RSS
     tag = root.tag
     if "atom" in tag or "feed" in tag.lower():
-        # Atom feed
         atom_ns = "http://www.w3.org/2005/Atom"
         for entry in root.findall(f"{{{atom_ns}}}entry"):
             title = extract_text(entry.find(f"{{{atom_ns}}}title"))
             summary = extract_text(entry.find(f"{{{atom_ns}}}summary")) or \
                       extract_text(entry.find(f"{{{atom_ns}}}content"))
-            pub = entry.find(f"{{{atom_ns}}}published") or entry.find(f"{{{atom_ns}}}updated")
+            pub = entry.find(f"{{{atom_ns}}}published")
+            if pub is None:
+                pub = entry.find(f"{{{atom_ns}}}updated")
             pub_text = pub.text if pub is not None else None
             items.append({"title": title, "summary": summary, "published": pub_text})
     else:
-        # RSS 2.0
+        # RSS 2.0 — fixed DeprecationWarning
         for item in root.iter("item"):
             title = extract_text(item.find("title"))
             desc  = extract_text(item.find("description")) or \
                     extract_text(item.find("summary"))
-            pub   = item.find("pubDate") or item.find("published")
+            pub = item.find("pubDate")
+            if pub is None:
+                pub = item.find("published")
             pub_text = pub.text if pub is not None else None
             items.append({"title": title, "summary": desc, "published": pub_text})
 
@@ -151,8 +177,12 @@ def fetch_recent_items(lookback_hours: int) -> list[dict]:
         parsed = parse_feed(raw)
         for item in parsed:
             pub = parse_date(item.get("published"))
-            # Include items without a parseable date — they might be recent
+            # Make timezone-aware if naive
+            if pub is not None and pub.tzinfo is None:
+                pub = pub.replace(tzinfo=timezone.utc)
             if pub is None or pub >= cutoff:
+                # Attach parsed date as ISO string for Claude
+                item["date"] = format_date_iso(pub)
                 all_items.append(item)
 
     return all_items
@@ -189,8 +219,9 @@ def build_news_block(items: list[dict]) -> str:
     for i, item in enumerate(items[:MAX_ITEMS], 1):
         title   = item.get("title",   "").strip()
         summary = item.get("summary", "").strip()
+        date    = item.get("date", "")
         if title:
-            line = f"{i}. {title}"
+            line = f"{i}. [{date}] {title}" if date else f"{i}. {title}"
             if summary:
                 line += f" — {summary[:200]}"
             lines.append(line)
@@ -208,13 +239,12 @@ def analyse_with_claude(news_block: str) -> dict:
 
     message = client.messages.create(
         model="claude-sonnet-4-5",
-        max_tokens=1024,
+        max_tokens=2048,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_msg}],
     )
 
     raw = message.content[0].text.strip()
-    # Strip accidental markdown fences
     raw = re.sub(r"^```[a-z]*\n?", "", raw)
     raw = re.sub(r"\n?```$", "", raw)
     return json.loads(raw)
@@ -238,7 +268,6 @@ def save_history(data: dict) -> None:
         except json.JSONDecodeError:
             history = []
 
-    # Keep a compact snapshot (timestamps + scores only)
     snapshot = {
         "updated_at": data.get("updated_at"),
         "scores": [
@@ -247,8 +276,6 @@ def save_history(data: dict) -> None:
         ],
     }
     history.append(snapshot)
-
-    # Retain last 60 snapshots (~30 days at twice-daily cadence)
     history = history[-60:]
     HISTORY_FILE.write_text(json.dumps(history, indent=2, ensure_ascii=False))
     print(f"  wrote {HISTORY_FILE}", file=sys.stderr)
@@ -283,47 +310,50 @@ def main() -> None:
     print("done.", file=sys.stderr)
 
 
-
 def generate_static_html(data: dict):
     signals_html = ""
     for s in data.get("signals", []):
-        signals_html += f'<li><strong>{s.get("company","")}</strong>: {s.get("text","")}</li>\n'
+        date_str = f" <span style='color:#888;font-size:0.85em'>({s.get('date', '')})</span>" if s.get("date") else ""
+        signals_html += f'<li><strong>{s.get("company","")}</strong>{date_str}: {s.get("text","")}</li>\n'
 
     scores_html = ""
     for info in data.get("scores", []):
         name = info.get("name", info.get("company", ""))
-        scores_html += f'<li>{name}: {info.get("score","?")} ({info.get("badge","")})</li>\n'
+        delta = info.get("delta", 0)
+        delta_str = f"+{delta}" if delta > 0 else str(delta)
+        scores_html += f'<li>{name}: {info.get("score","?")} ({delta_str}) — {info.get("badge","")}</li>\n'
 
     winner = data.get("winner", {})
     loser = data.get("loser", {})
+    updated = data.get("updated_at", "")
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>AI Pulse — Daily AI Industry Momentum</title>
-<meta name="description" content="Daily momentum scores for OpenAI, Anthropic, DeepSeek and Perplexity based on latest AI news.">
+<meta name="description" content="Daily momentum scores for OpenAI, Anthropic, Google, Meta, DeepSeek, Mistral, xAI and Perplexity based on latest AI news.">
 <link rel="canonical" href="https://app.ai-groundtruth.com/">
 </head>
 <body>
 <h1>AI Pulse — AI Industry Momentum</h1>
-<p>Updated: {data.get("updated","")}</p>
+<p>Updated: {updated}</p>
 <h2>Scores</h2>
 <ul>{scores_html}</ul>
 <h2>Top Signals</h2>
 <ul>{signals_html}</ul>
 <h2>Winner of the day: {winner.get("name","")}</h2>
-<p>{winner.get("reason","")}</p>
+<p>{winner.get("text","")}</p>
 <h2>Loser of the day: {loser.get("name","")}</h2>
-<p>{loser.get("reason","")}</p>
+<p>{loser.get("text","")}</p>
 <p><a href="/">View live dashboard</a></p>
 </body>
 </html>"""
 
-    with open("data/seo.html", "w") as f:
-        f.write(html)
-    print("  static seo.html generated")
+    seo_path = DATA_DIR / "seo.html"
+    seo_path.write_text(html)
+    print("  static seo.html generated", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()
-
