@@ -260,6 +260,163 @@ def analyse_with_claude(news_block: str) -> dict:
     return json.loads(raw)
 
 
+# ── Prediction Markets ───────────────────────────────────────────────────────
+
+BETS_FILE = DATA_DIR / "bets.json"
+
+BETS_GENERATE_PROMPT = """You are an AI industry analyst. Given recent AI news, generate 3 fresh prediction market questions.
+Rules:
+- Questions must be YES/NO answerable
+- Resolvable within 7-14 days based on observable facts
+- About specific AI companies, product launches, regulatory events, or market moves
+- Must be directly connected to the news provided
+- No duplicates of existing open questions listed below
+
+Existing open questions (do not duplicate):
+{existing}
+
+Return ONLY valid JSON, no markdown:
+[
+  {{
+    "id": "q_<6 random hex chars>",
+    "text": "Will X do Y by <specific date>?",
+    "created_at": "<ISO datetime now>",
+    "resolves_at": "<ISO datetime 7-14 days from now>",
+    "status": "open",
+    "yes_votes": 0,
+    "no_votes": 0,
+    "resolution": null,
+    "resolution_text": null
+  }},
+  ...
+]"""
+
+BETS_RESOLVE_PROMPT = """You are an AI industry analyst. Given recent AI news and a list of open prediction questions,
+resolve any questions whose resolution date has passed OR whose outcome is clearly determinable from the news.
+
+News summary:
+{news}
+
+Questions to evaluate:
+{questions}
+
+For each question return its id and one of:
+- resolution: "yes" or "no" (if clearly resolvable)
+- resolution: null (if still uncertain)
+- resolution_text: one sentence explaining the resolution
+
+Return ONLY valid JSON, no markdown:
+[
+  {{"id": "q_xxx", "resolution": "yes"|"no"|null, "resolution_text": "..."}},
+  ...
+]"""
+
+
+def load_bets() -> dict:
+    if BETS_FILE.exists():
+        try:
+            return json.loads(BETS_FILE.read_text())
+        except json.JSONDecodeError:
+            pass
+    return {"questions": []}
+
+
+def save_bets(bets: dict) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    BETS_FILE.write_text(json.dumps(bets, indent=2, ensure_ascii=False))
+    print(f"  wrote {BETS_FILE}", file=sys.stderr)
+
+
+def generate_bets(news_block: str, existing_questions: list) -> list:
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    existing_texts = "\n".join(f"- {q['text']}" for q in existing_questions) or "none"
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    prompt = BETS_GENERATE_PROMPT.format(existing=existing_texts)
+    user_msg = f"Current UTC time: {now_iso}\n\nRecent news:\n{news_block[:3000]}"
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=1024,
+        system=prompt,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    raw = message.content[0].text.strip()
+    raw = re.sub(r"^```[a-z]*\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw)
+    return json.loads(raw)
+
+
+def resolve_bets(news_block: str, open_questions: list) -> list:
+    if not open_questions:
+        return []
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    questions_text = json.dumps(
+        [{"id": q["id"], "text": q["text"], "resolves_at": q["resolves_at"]} for q in open_questions],
+        indent=2
+    )
+    prompt = BETS_RESOLVE_PROMPT.format(
+        news=news_block[:3000],
+        questions=questions_text
+    )
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=1024,
+        system="You are an AI industry analyst. Return only valid JSON arrays.",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = message.content[0].text.strip()
+    raw = re.sub(r"^```[a-z]*\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw)
+    return json.loads(raw)
+
+
+def update_bets(news_block: str) -> None:
+    bets = load_bets()
+    now = datetime.now(timezone.utc)
+
+    # 1. Resolve open questions
+    open_qs = [q for q in bets["questions"] if q["status"] == "open"]
+    if open_qs:
+        print("  resolving open bets…", file=sys.stderr)
+        try:
+            resolutions = resolve_bets(news_block, open_qs)
+            for r in resolutions:
+                for q in bets["questions"]:
+                    if q["id"] == r["id"] and r.get("resolution") in ("yes", "no"):
+                        q["resolution"] = r["resolution"]
+                        q["resolution_text"] = r.get("resolution_text", "")
+                        q["status"] = "resolved"
+        except Exception as e:
+            print(f"  warn: resolution failed: {e}", file=sys.stderr)
+
+    # 2. Expire overdue unresolved questions
+    for q in bets["questions"]:
+        if q["status"] == "open":
+            try:
+                resolves_at = datetime.fromisoformat(q["resolves_at"].replace("Z", "+00:00"))
+                if resolves_at < now - timedelta(days=2):
+                    q["status"] = "expired"
+            except Exception:
+                pass
+
+    # 3. Generate new questions (only if fewer than 5 open)
+    open_count = sum(1 for q in bets["questions"] if q["status"] == "open")
+    if open_count < 5:
+        print("  generating new bets…", file=sys.stderr)
+        try:
+            new_qs = generate_bets(news_block, [q for q in bets["questions"] if q["status"] == "open"])
+            bets["questions"] = bets["questions"] + new_qs
+            # Keep last 50 questions total
+            bets["questions"] = bets["questions"][-50:]
+        except Exception as e:
+            print(f"  warn: bet generation failed: {e}", file=sys.stderr)
+
+    save_bets(bets)
+
+
 # ── Persistence ───────────────────────────────────────────────────────────────
 
 def save_feed(data: dict) -> None:
@@ -316,6 +473,9 @@ def main() -> None:
     print("4/4  saving output…", file=sys.stderr)
     save_feed(data)
     save_history(data)
+
+    print("5/5  updating prediction markets…", file=sys.stderr)
+    update_bets(news_block)
 
     print("done.", file=sys.stderr)
 

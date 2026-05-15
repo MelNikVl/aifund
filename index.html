@@ -364,6 +364,120 @@
     box-shadow: 0 0 4px currentColor;
   }
 
+  /* ── Prediction Markets ── */
+  .bets-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+
+  .bet-item {
+    background: var(--surface);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bet-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .bet-question {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    flex: 1;
+  }
+
+  .bet-meta {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .bet-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bet-bar-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bet-bar-yes {
+    height: 100%;
+    background: var(--up);
+    transition: width 0.4s ease;
+    border-radius: 2px;
+  }
+
+  .bet-pct {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .bet-pct.yes { color: var(--up); }
+  .bet-pct.no  { color: var(--down); }
+
+  .bet-votes {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .bet-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .bet-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .bet-btn:hover { border-color: var(--text); color: var(--text); }
+  .bet-btn.yes:hover { border-color: var(--up); color: var(--up); }
+  .bet-btn.no:hover  { border-color: var(--down); color: var(--down); }
+  .bet-btn.voted-yes { border-color: var(--up); color: var(--up); background: rgba(74,222,128,0.08); }
+  .bet-btn.voted-no  { border-color: var(--down); color: var(--down); background: rgba(248,113,113,0.08); }
+
+  .bet-resolved {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid;
+    align-self: flex-start;
+  }
+
+  .bet-resolved.yes { border-color: var(--up); color: var(--up); }
+  .bet-resolved.no  { border-color: var(--down); color: var(--down); }
+  .bet-resolved.expired { border-color: #444; color: #555; }
+
+  .bet-resolution-text {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
   /* ── Error / loading ── */
   .state-msg {
     padding: 32px;
@@ -422,6 +536,11 @@
   <section id="section-drama">
     <div class="section-label">Drama of the day</div>
     <div id="drama-container" class="state-msg">fetching data&hellip;</div>
+  </section>
+
+  <section id="section-bets">
+    <div class="section-label">Prediction markets &mdash; vote YES / NO</div>
+    <div id="bets-container" class="state-msg">fetching data&hellip;</div>
   </section>
 
   <footer>
@@ -494,28 +613,59 @@
     return 'flat';
   }
 
+  // ── Smooth curve helper (Catmull-Rom → cubic bezier) ─────────────────────
+
+  function smoothPath(xs, ys) {
+    if (xs.length < 2) return '';
+    const pts = xs.map((x, i) => [x, ys[i]]);
+    let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(i + 2, pts.length - 1)];
+      const t = 0.4;
+      const cp1x = p1[0] + (p2[0] - p0[0]) * t;
+      const cp1y = p1[1] + (p2[1] - p0[1]) * t;
+      const cp2x = p2[0] - (p3[0] - p1[0]) * t;
+      const cp2y = p2[1] - (p3[1] - p1[1]) * t;
+      d += ` C${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+    }
+    return d;
+  }
+
   // ── Sparkline ────────────────────────────────────────────────────────────
 
   function buildSparkline(points, color) {
     if (!points || points.length < 2) return '';
-    const W = 160, H = 40, pad = 2;
+    const W = 160, H = 44, padX = 2, padY = 4;
     const min = Math.min(...points);
     const max = Math.max(...points);
-    const range = max - min || 1;
-    const xs = points.map((_, i) => pad + (i / (points.length - 1)) * (W - pad * 2));
-    const ys = points.map(v => H - pad - ((v - min) / range) * (H - pad * 2));
-    const line = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
-    const area = line + ` L${xs[xs.length-1].toFixed(1)},${H} L${xs[0].toFixed(1)},${H} Z`;
-    const id = 'g' + Math.random().toString(36).slice(2);
+    const range = max - min || 4;
+    const xs = points.map((_, i) => padX + (i / (points.length - 1)) * (W - padX * 2));
+    const ys = points.map(v => H - padY - ((v - min) / range) * (H - padY * 2));
+
+    const linePath = smoothPath(xs, ys);
+    // Area: close down to bottom
+    const areaPath = linePath
+      + ` L${xs[xs.length-1].toFixed(2)},${H} L${xs[0].toFixed(2)},${H} Z`;
+
+    const id = 'sp' + Math.random().toString(36).slice(2);
+    const lastX = xs[xs.length - 1];
+    const lastY = ys[ys.length - 1];
+    const firstY = ys[0];
+    const trend = lastY < firstY ? color : '#f87171'; // up = color, down = red
+
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
         </linearGradient>
       </defs>
-      <path d="${area}" fill="url(#${id})"/>
-      <path d="${line}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="${areaPath}" fill="url(#${id})"/>
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${lastX.toFixed(2)}" cy="${lastY.toFixed(2)}" r="2.5" fill="${color}"/>
     </svg>`;
   }
 
@@ -524,14 +674,12 @@
   function buildHistoryChart(history, activeCompanies) {
     if (!history || history.length < 2) return '<div class="state-msg">not enough history data yet</div>';
 
-    const W = 800, H = 220, padL = 30, padR = 10, padT = 10, padB = 20;
+    const W = 820, H = 260, padL = 36, padR = 16, padT = 16, padB = 28;
     const chartW = W - padL - padR;
     const chartH = H - padT - padB;
 
-    // Collect all companies
     const allNames = Array.from(new Set(history.flatMap(h => (h.scores || []).map(s => s.name))));
 
-    // Build series
     const series = {};
     allNames.forEach(name => {
       series[name] = history.map(h => {
@@ -540,64 +688,120 @@
       });
     });
 
-    // Grid lines
     let svg = `<svg class="history-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
-    // Y grid
+    // Background
+    svg += `<rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" fill="#0d0d0d"/>`;
+
+    // Y grid lines + labels
     [0, 25, 50, 75, 100].forEach(v => {
       const y = padT + chartH - (v / 100) * chartH;
-      svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#222" stroke-width="1"/>`;
-      svg += `<text x="${padL - 4}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="9" fill="#555" font-family="monospace">${v}</text>`;
+      const isNeutral = v === 50;
+      svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"
+        stroke="${isNeutral ? '#2a2a2a' : '#1a1a1a'}"
+        stroke-width="${isNeutral ? 1.5 : 1}"
+        stroke-dasharray="${isNeutral ? '6,3' : 'none'}"/>`;
+      svg += `<text x="${padL - 6}" y="${(y + 3.5).toFixed(1)}"
+        text-anchor="end" font-size="9" fill="#444" font-family="monospace">${v}</text>`;
     });
 
-    // Neutral line at 50
-    const y50 = padT + chartH - (50 / 100) * chartH;
-    svg += `<line x1="${padL}" y1="${y50.toFixed(1)}" x2="${W - padR}" y2="${y50.toFixed(1)}" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>`;
-
-    // X axis dates
-    const step = Math.max(1, Math.floor(history.length / 6));
+    // X axis date labels
+    const step = Math.max(1, Math.floor(history.length / 8));
     history.forEach((h, i) => {
       if (i % step === 0 && h.updated_at) {
         const x = padL + (i / (history.length - 1)) * chartW;
-        const label = h.updated_at.slice(5, 10); // MM-DD
-        svg += `<text x="${x.toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">${label}</text>`;
+        const label = h.updated_at.slice(5, 10);
+        svg += `<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(padT + chartH).toFixed(1)}"
+          stroke="#1a1a1a" stroke-width="1"/>`;
+        svg += `<text x="${x.toFixed(1)}" y="${H - 8}"
+          text-anchor="middle" font-size="9" fill="#444" font-family="monospace">${label}</text>`;
       }
     });
 
-    // Lines
+    // Neutral label
+    const y50 = padT + chartH - (50 / 100) * chartH;
+    svg += `<text x="${W - padR + 4}" y="${(y50 + 3).toFixed(1)}"
+      font-size="8" fill="#333" font-family="monospace">50</text>`;
+
+    // Draw lines with smooth curves + area fill
     allNames.forEach(name => {
       if (activeCompanies && !activeCompanies.has(name)) return;
       const color = getColor(name);
       const pts = series[name];
+
       const coords = pts.map((v, i) => {
         if (v === null) return null;
-        const x = padL + (i / (history.length - 1)) * chartW;
-        const y = padT + chartH - (v / 100) * chartH;
-        return [x, y];
-      }).filter(Boolean);
+        return [
+          padL + (i / (history.length - 1)) * chartW,
+          padT + chartH - (v / 100) * chartH
+        ];
+      });
 
-      if (coords.length < 2) return;
-      const d = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ');
-      svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>`;
+      // Split into segments (handle nulls)
+      const segments = [];
+      let seg = [];
+      coords.forEach(c => {
+        if (c === null) { if (seg.length > 1) segments.push(seg); seg = []; }
+        else seg.push(c);
+      });
+      if (seg.length > 1) segments.push(seg);
 
-      // Last point dot
-      const last = coords[coords.length - 1];
-      svg += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>`;
+      segments.forEach(seg => {
+        const xs = seg.map(c => c[0]);
+        const ys = seg.map(c => c[1]);
+        const linePath = smoothPath(xs, ys);
+
+        // Area gradient
+        const gradId = 'hg' + Math.random().toString(36).slice(2);
+        svg += `<defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>`;
+
+        const areaPath = linePath
+          + ` L${xs[xs.length-1].toFixed(2)},${(padT + chartH).toFixed(2)}`
+          + ` L${xs[0].toFixed(2)},${(padT + chartH).toFixed(2)} Z`;
+        svg += `<path d="${areaPath}" fill="url(#${gradId})"/>`;
+        svg += `<path d="${linePath}" fill="none" stroke="${color}" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+      });
+
+      // Last point — glowing dot
+      const last = coords.filter(Boolean).pop();
+      if (last) {
+        svg += `<circle cx="${last[0].toFixed(2)}" cy="${last[1].toFixed(2)}" r="4" fill="${color}" opacity="0.2"/>`;
+        svg += `<circle cx="${last[0].toFixed(2)}" cy="${last[1].toFixed(2)}" r="2.5" fill="${color}"/>`;
+      }
     });
+
+    // Border
+    svg += `<rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}"
+      fill="none" stroke="#222" stroke-width="1"/>`;
 
     svg += '</svg>';
 
-    // Legend
-    let legend = '<div class="history-legend">';
-    allNames.forEach(name => {
-      const active = !activeCompanies || activeCompanies.has(name);
-      const color = getColor(name);
-      legend += `<div class="legend-item ${active ? 'active' : ''}" data-name="${esc(name)}" style="color:${color}">
-        <div class="legend-dot" style="background:${color}"></div>
-        <span>${esc(name)}</span>
-      </div>`;
-    });
-    legend += '</div>';
+    // Legend — split central vs DeAI
+    const DEAI = new Set(['Bittensor', 'Gonka', 'Cocoon']);
+    const centralNames = allNames.filter(n => !DEAI.has(n));
+    const deaiNames = allNames.filter(n => DEAI.has(n));
+
+    function legendItems(names) {
+      return names.map(name => {
+        const active = !activeCompanies || activeCompanies.has(name);
+        const color = getColor(name);
+        return `<div class="legend-item ${active ? 'active' : ''}" data-name="${esc(name)}" style="color:${color}">
+          <div class="legend-dot" style="background:${color}"></div>
+          <span>${esc(name)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    const legend = `<div class="history-legend">
+      ${legendItems(centralNames)}
+      ${deaiNames.length ? `<span style="color:#333;margin:0 4px">|</span>${legendItems(deaiNames)}` : ''}
+    </div>`;
 
     return `<div class="history-wrap">
       <div class="history-chart-container">${svg}</div>
@@ -705,9 +909,121 @@
     attachLegendHandlers();
   }
 
+  // ── Prediction Markets ───────────────────────────────────────────────────
+
+  // Votes stored in localStorage per question id
+  function getVoted(id) {
+    try { return localStorage.getItem('vote_' + id); } catch { return null; }
+  }
+  function setVoted(id, v) {
+    try { localStorage.setItem('vote_' + id, v); } catch {}
+  }
+
+  function daysUntil(isoStr) {
+    const diff = new Date(isoStr).getTime() - Date.now();
+    const days = Math.ceil(diff / 86400000);
+    if (days < 0) return 'overdue';
+    if (days === 0) return 'today';
+    return `${days}d left`;
+  }
+
+  function renderBets(bets) {
+    const questions = (bets.questions || []).slice().reverse(); // newest first
+    const open = questions.filter(q => q.status === 'open');
+    const closed = questions.filter(q => q.status !== 'open');
+
+    if (!questions.length) {
+      return '<div class="state-msg">no predictions yet — check back soon</div>';
+    }
+
+    function renderQuestion(q) {
+      const total = (q.yes_votes || 0) + (q.no_votes || 0);
+      const yesPct = total > 0 ? Math.round((q.yes_votes / total) * 100) : 50;
+      const noPct = 100 - yesPct;
+      const voted = getVoted(q.id);
+
+      let statusHtml = '';
+      let actionsHtml = '';
+
+      if (q.status === 'open') {
+        const timeLeft = daysUntil(q.resolves_at);
+        statusHtml = `<div class="bet-meta">resolves ${timeLeft}</div>`;
+        actionsHtml = `<div class="bet-actions">
+          <button class="bet-btn yes ${voted === 'yes' ? 'voted-yes' : ''}"
+            onclick="window.castVote('${q.id}', 'yes')">
+            ${voted === 'yes' ? '✓ ' : ''}YES
+          </button>
+          <button class="bet-btn no ${voted === 'no' ? 'voted-no' : ''}"
+            onclick="window.castVote('${q.id}', 'no')">
+            ${voted === 'no' ? '✓ ' : ''}NO
+          </button>
+          <span class="bet-votes">${total} vote${total !== 1 ? 's' : ''}</span>
+        </div>`;
+      } else if (q.status === 'resolved') {
+        statusHtml = `<div class="bet-resolved ${q.resolution}">${q.resolution === 'yes' ? '✓ YES' : '✗ NO'}</div>`;
+        if (q.resolution_text) {
+          actionsHtml = `<div class="bet-resolution-text">${esc(q.resolution_text)}</div>`;
+        }
+      } else {
+        statusHtml = `<div class="bet-resolved expired">expired</div>`;
+      }
+
+      return `<div class="bet-item" id="bet-${q.id}">
+        <div class="bet-header">
+          <div class="bet-question">${esc(q.text)}</div>
+          ${statusHtml}
+        </div>
+        <div class="bet-bar-wrap">
+          <span class="bet-pct yes">${yesPct}%</span>
+          <div class="bet-bar-track">
+            <div class="bet-bar-yes" style="width:${yesPct}%"></div>
+          </div>
+          <span class="bet-pct no">${noPct}%</span>
+        </div>
+        ${actionsHtml}
+      </div>`;
+    }
+
+    let html = '<div class="bets-list">';
+    open.forEach(q => { html += renderQuestion(q); });
+    if (closed.length > 0) {
+      html += `<div class="section-label" style="margin:0;padding:10px 14px;background:var(--bg)">
+        Resolved &amp; expired</div>`;
+      closed.slice(0, 10).forEach(q => { html += renderQuestion(q); });
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // Global vote handler
+  let _betsData = null;
+  window.castVote = function(id, side) {
+    if (!_betsData) return;
+    const prev = getVoted(id);
+    const q = (_betsData.questions || []).find(q => q.id === id);
+    if (!q || q.status !== 'open') return;
+
+    // Undo previous vote
+    if (prev === 'yes') q.yes_votes = Math.max(0, (q.yes_votes || 0) - 1);
+    if (prev === 'no')  q.no_votes  = Math.max(0, (q.no_votes  || 0) - 1);
+
+    // Cast new vote (toggle if same)
+    if (prev !== side) {
+      if (side === 'yes') q.yes_votes = (q.yes_votes || 0) + 1;
+      if (side === 'no')  q.no_votes  = (q.no_votes  || 0) + 1;
+      setVoted(id, side);
+    } else {
+      setVoted(id, null);
+      localStorage.removeItem('vote_' + id);
+    }
+
+    // Re-render bets section
+    document.getElementById('bets-container').innerHTML = renderBets(_betsData);
+  };
+
   // ── Mount ────────────────────────────────────────────────────────────────
 
-  function mount(data, history) {
+  function mount(data, history, bets) {
     // Prominent timestamp
     document.getElementById('update-time').textContent = formatDateTime(data.updated_at);
     document.getElementById('update-ago').textContent = timeAgo(data.updated_at);
@@ -724,20 +1040,24 @@
       `<div id="signals-container">${renderSignals(data.signals)}</div>`;
     document.getElementById('drama-container').outerHTML =
       `<div id="drama-container">${renderDrama(data.winner, data.loser)}</div>`;
+
+    _betsData = bets;
+    document.getElementById('bets-container').innerHTML = renderBets(bets);
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────────
 
   Promise.all([
     fetch('data/feed.json').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
-    fetch('data/history.json').then(r => r.ok ? r.json() : []).catch(() => [])
+    fetch('data/history.json').then(r => r.ok ? r.json() : []).catch(() => []),
+    fetch('data/bets.json').then(r => r.ok ? r.json() : {questions:[]}).catch(() => ({questions:[]}))
   ])
-    .then(([feed, history]) => mount(feed, history))
+    .then(([feed, history, bets]) => mount(feed, history, bets))
     .catch(function (err) {
       const msg = 'data unavailable — ' + err.message;
       document.getElementById('update-time').textContent = 'unavailable';
       document.getElementById('update-ago').textContent = '';
-      ['scores-container', 'signals-container', 'drama-container', 'history-container'].forEach(function (id) {
+      ['scores-container', 'signals-container', 'drama-container', 'history-container', 'bets-container'].forEach(function (id) {
         const el = document.getElementById(id);
         if (el) el.innerHTML = `<div class="state-msg">${esc(msg)}</div>`;
       });
