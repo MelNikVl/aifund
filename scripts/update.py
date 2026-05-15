@@ -35,6 +35,12 @@ FEEDS = [
     "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_meta_ai.xml",
     "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_xai_news.xml",
     "https://raw.githubusercontent.com/0xSMW/rss-feeds/main/feeds/feed_mistral_news.xml",
+    # Decentralized AI
+    "https://blog.bittensor.com/feed",                          # Bittensor official
+    "https://what-is-gonka.hashnode.dev/rss.xml",               # Gonka blog
+    "https://www.reddit.com/r/bittensor_.rss",                  # Bittensor community
+    "https://www.reddit.com/r/GonkaAI/.rss",                    # Gonka community
+    "https://hnrss.org/frontpage?q=Bittensor+TAO+Gonka+Cocoon+decentralized+AI&count=15",
     # Tech media
     "https://www.theverge.com/rss/index.xml",
     "https://venturebeat.com/category/ai/feed/",
@@ -70,7 +76,10 @@ and summaries, return a JSON object with this exact structure:
     { "name": "DeepSeek",   "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
     { "name": "Mistral",    "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
     { "name": "xAI",        "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
-    { "name": "Perplexity", "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" }
+    { "name": "Perplexity", "score": 0-100, "delta": -10 to 10, "badge": "release|agents|regulatory|open model|controversy|quiet" },
+    { "name": "Bittensor",  "score": 0-100, "delta": -10 to 10, "badge": "release|network|tokenomics|controversy|quiet" },
+    { "name": "Gonka",      "score": 0-100, "delta": -10 to 10, "badge": "release|network|tokenomics|controversy|quiet" },
+    { "name": "Cocoon",     "score": 0-100, "delta": -10 to 10, "badge": "release|network|tokenomics|controversy|quiet" }
   ],
   "signals": [
     { "company": "...", "text": "...one line max...", "tag": "...", "date": "YYYY-MM-DD" },
@@ -81,6 +90,7 @@ and summaries, return a JSON object with this exact structure:
 }
 Score logic: higher = more positive news momentum today.
 Delta = change from neutral baseline (50) if no prior data is available.
+For Bittensor/Gonka/Cocoon: score based on network activity, token news, new subnets, partnerships, technical milestones.
 For signals, use the actual publication date of the news item if available, otherwise use today's date.
 Return only valid JSON, no markdown."""
 

@@ -5,8 +5,8 @@
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Pulse — AI Industry Momentum Dashboard</title>
-<meta name="description" content="Real-time momentum scores for OpenAI, Anthropic, DeepSeek and Perplexity. Updated twice daily from top AI news sources.">
-<meta name="keywords" content="AI news, OpenAI, Anthropic, DeepSeek, Perplexity, AI industry tracker">
+<meta name="description" content="Real-time momentum scores for OpenAI, Anthropic, Google, Meta, DeepSeek, Mistral, xAI and Perplexity. Updated twice daily from top AI news sources.">
+<meta name="keywords" content="AI news, OpenAI, Anthropic, DeepSeek, Perplexity, Google AI, Meta AI, Mistral, xAI, AI industry tracker">
 <link rel="canonical" href="https://app.ai-groundtruth.com">
 <meta property="og:title" content="AI Pulse — AI Industry Momentum Dashboard">
 <meta property="og:description" content="Daily momentum scores for top AI companies. Who is winning today?">
@@ -14,7 +14,7 @@
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="AI Pulse">
-<meta name="twitter:description" content="Daily momentum scores for OpenAI, Anthropic, DeepSeek, Perplexity.">
+<meta name="twitter:description" content="Daily momentum scores for OpenAI, Anthropic, Google, Meta, DeepSeek, Mistral, xAI, Perplexity.">
 <style>
   :root {
     --bg:      #0a0a0a;
@@ -41,23 +41,26 @@
 
   a { color: inherit; text-decoration: none; }
 
-  /* ── Layout ── */
   .shell {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 24px 16px 48px;
   }
 
   /* ── Header ── */
   header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+
+  .header-top {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 12px;
-    margin-bottom: 28px;
     flex-wrap: wrap;
     gap: 6px;
+    margin-bottom: 10px;
   }
 
   .logo {
@@ -67,15 +70,52 @@
     text-transform: uppercase;
   }
 
-  .logo span {
-    color: var(--muted);
-    font-weight: 400;
+  .logo span { color: var(--muted); font-weight: 400; }
+
+  /* ── Update timestamp block ── */
+  .update-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    flex-wrap: wrap;
   }
 
-  .meta {
+  .update-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     color: var(--muted);
-    font-size: 11px;
+  }
+
+  .update-time {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
     letter-spacing: 0.04em;
+  }
+
+  .update-ago {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .update-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--up);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
 
   /* ── Section labels ── */
@@ -95,7 +135,7 @@
   /* ── Score grid ── */
   .scores {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1px;
     background: var(--border);
     border: 1px solid var(--border);
@@ -143,13 +183,23 @@
     height: 3px;
     background: var(--border);
     width: 100%;
-    position: relative;
   }
 
   .score-bar-fill {
     height: 100%;
     background: var(--text);
-    transition: width 0.4s ease;
+  }
+
+  /* ── Sparkline chart ── */
+  .sparkline-wrap {
+    width: 100%;
+    height: 40px;
+    position: relative;
+  }
+
+  .sparkline-wrap svg {
+    width: 100%;
+    height: 100%;
   }
 
   .badge {
@@ -178,17 +228,17 @@
     background: var(--surface);
     padding: 12px 14px;
     display: grid;
-    grid-template-columns: 90px 1fr 80px;
+    grid-template-columns: 90px 1fr 70px 80px;
     gap: 12px;
     align-items: start;
   }
 
-  @media (max-width: 520px) {
+  @media (max-width: 600px) {
     .signal-item {
       grid-template-columns: 1fr;
       gap: 4px;
     }
-    .signal-tag { justify-self: start; }
+    .signal-tag, .signal-date { justify-self: start; }
   }
 
   .signal-company {
@@ -215,6 +265,14 @@
     border: 1px solid var(--border);
     padding: 2px 6px;
     justify-self: end;
+    white-space: nowrap;
+  }
+
+  .signal-date {
+    font-size: 10px;
+    color: var(--muted);
+    justify-self: end;
+    padding-top: 2px;
     white-space: nowrap;
   }
 
@@ -260,7 +318,53 @@
     line-height: 1.6;
   }
 
-  /* ── Error / loading states ── */
+  /* ── History chart ── */
+  .history-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .history-chart-container {
+    position: relative;
+    min-width: 500px;
+  }
+
+  .history-svg {
+    width: 100%;
+    display: block;
+  }
+
+  .history-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-item.active .legend-dot {
+    box-shadow: 0 0 4px currentColor;
+  }
+
+  /* ── Error / loading ── */
   .state-msg {
     padding: 32px;
     text-align: center;
@@ -289,13 +393,25 @@
 <div class="shell">
 
   <header>
-    <div class="logo">AI <span>//</span> Pulse</div>
-    <div class="meta" id="last-updated">loading...</div>
+    <div class="header-top">
+      <div class="logo">AI <span>//</span> Pulse</div>
+    </div>
+    <div class="update-block">
+      <div class="update-dot"></div>
+      <div class="update-label">Last updated</div>
+      <div class="update-time" id="update-time">—</div>
+      <div class="update-ago" id="update-ago">—</div>
+    </div>
   </header>
 
   <section id="section-scores">
     <div class="section-label">Model momentum &mdash; score 0&ndash;100</div>
     <div id="scores-container" class="state-msg">fetching data&hellip;</div>
+  </section>
+
+  <section id="section-history">
+    <div class="section-label">Score history &mdash; last 30 days</div>
+    <div id="history-container" class="state-msg">fetching data&hellip;</div>
   </section>
 
   <section id="section-signals">
@@ -319,6 +435,25 @@
 (function () {
   'use strict';
 
+  // Company colors for charts
+  const COMPANY_COLORS = {
+    'OpenAI':     '#e8e8e8',
+    'Anthropic':  '#f97316',
+    'Google':     '#60a5fa',
+    'Meta':       '#a78bfa',
+    'DeepSeek':   '#4ade80',
+    'Mistral':    '#fbbf24',
+    'xAI':        '#f87171',
+    'Perplexity': '#22d3ee',
+    'Bittensor':  '#818cf8',
+    'Gonka':      '#34d399',
+    'Cocoon':     '#2dd4bf',
+  };
+
+  function getColor(name) {
+    return COMPANY_COLORS[name] || '#888888';
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function timeAgo(isoStr) {
@@ -331,9 +466,15 @@
     return `${Math.floor(hrs / 24)}d ago`;
   }
 
+  function formatDateTime(isoStr) {
+    const d = new Date(isoStr);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  }
+
   function esc(str) {
     const d = document.createElement('div');
-    d.textContent = str;
+    d.textContent = str || '';
     return d.innerHTML;
   }
 
@@ -342,32 +483,171 @@
   }
 
   function deltaStr(d) {
-    if (d > 0)  return `+${d}`;
-    if (d < 0)  return `${d}`;
+    if (d > 0) return `+${d}`;
+    if (d < 0) return `${d}`;
     return '±0';
   }
 
   function deltaClass(d) {
-    if (d > 0)  return 'up';
-    if (d < 0)  return 'down';
+    if (d > 0) return 'up';
+    if (d < 0) return 'down';
     return 'flat';
+  }
+
+  // ── Sparkline ────────────────────────────────────────────────────────────
+
+  function buildSparkline(points, color) {
+    if (!points || points.length < 2) return '';
+    const W = 160, H = 40, pad = 2;
+    const min = Math.min(...points);
+    const max = Math.max(...points);
+    const range = max - min || 1;
+    const xs = points.map((_, i) => pad + (i / (points.length - 1)) * (W - pad * 2));
+    const ys = points.map(v => H - pad - ((v - min) / range) * (H - pad * 2));
+    const line = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+    const area = line + ` L${xs[xs.length-1].toFixed(1)},${H} L${xs[0].toFixed(1)},${H} Z`;
+    const id = 'g' + Math.random().toString(36).slice(2);
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="${area}" fill="url(#${id})"/>
+      <path d="${line}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>`;
+  }
+
+  // ── History chart ────────────────────────────────────────────────────────
+
+  function buildHistoryChart(history, activeCompanies) {
+    if (!history || history.length < 2) return '<div class="state-msg">not enough history data yet</div>';
+
+    const W = 800, H = 220, padL = 30, padR = 10, padT = 10, padB = 20;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+
+    // Collect all companies
+    const allNames = Array.from(new Set(history.flatMap(h => (h.scores || []).map(s => s.name))));
+
+    // Build series
+    const series = {};
+    allNames.forEach(name => {
+      series[name] = history.map(h => {
+        const s = (h.scores || []).find(s => s.name === name);
+        return s ? s.score : null;
+      });
+    });
+
+    // Grid lines
+    let svg = `<svg class="history-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // Y grid
+    [0, 25, 50, 75, 100].forEach(v => {
+      const y = padT + chartH - (v / 100) * chartH;
+      svg += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#222" stroke-width="1"/>`;
+      svg += `<text x="${padL - 4}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="9" fill="#555" font-family="monospace">${v}</text>`;
+    });
+
+    // Neutral line at 50
+    const y50 = padT + chartH - (50 / 100) * chartH;
+    svg += `<line x1="${padL}" y1="${y50.toFixed(1)}" x2="${W - padR}" y2="${y50.toFixed(1)}" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>`;
+
+    // X axis dates
+    const step = Math.max(1, Math.floor(history.length / 6));
+    history.forEach((h, i) => {
+      if (i % step === 0 && h.updated_at) {
+        const x = padL + (i / (history.length - 1)) * chartW;
+        const label = h.updated_at.slice(5, 10); // MM-DD
+        svg += `<text x="${x.toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#555" font-family="monospace">${label}</text>`;
+      }
+    });
+
+    // Lines
+    allNames.forEach(name => {
+      if (activeCompanies && !activeCompanies.has(name)) return;
+      const color = getColor(name);
+      const pts = series[name];
+      const coords = pts.map((v, i) => {
+        if (v === null) return null;
+        const x = padL + (i / (history.length - 1)) * chartW;
+        const y = padT + chartH - (v / 100) * chartH;
+        return [x, y];
+      }).filter(Boolean);
+
+      if (coords.length < 2) return;
+      const d = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ');
+      svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>`;
+
+      // Last point dot
+      const last = coords[coords.length - 1];
+      svg += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="${color}"/>`;
+    });
+
+    svg += '</svg>';
+
+    // Legend
+    let legend = '<div class="history-legend">';
+    allNames.forEach(name => {
+      const active = !activeCompanies || activeCompanies.has(name);
+      const color = getColor(name);
+      legend += `<div class="legend-item ${active ? 'active' : ''}" data-name="${esc(name)}" style="color:${color}">
+        <div class="legend-dot" style="background:${color}"></div>
+        <span>${esc(name)}</span>
+      </div>`;
+    });
+    legend += '</div>';
+
+    return `<div class="history-wrap">
+      <div class="history-chart-container">${svg}</div>
+      ${legend}
+    </div>`;
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  function renderScores(scores) {
-    return `<div class="scores">${scores.map(s => `
-      <div class="score-card">
-        <div class="score-company">${esc(s.name)}</div>
-        <div class="score-row">
-          <span class="score-value">${s.score}</span>
-          <span class="score-delta ${deltaClass(s.delta)}">${deltaStr(s.delta)}</span>
-        </div>
-        <div class="score-bar-track">
-          <div class="score-bar-fill" style="width:${Math.min(100, Math.max(0, s.score))}%"></div>
-        </div>
-        <span class="badge ${badgeClass(s.badge)}">${esc(s.badge)}</span>
-      </div>`).join('')}</div>`;
+  function renderScores(scores, history) {
+    const sparkData = {};
+    if (history && history.length > 1) {
+      history.forEach(h => {
+        (h.scores || []).forEach(s => {
+          if (!sparkData[s.name]) sparkData[s.name] = [];
+          sparkData[s.name].push(s.score);
+        });
+      });
+    }
+
+    const DEAI = new Set(['Bittensor', 'Gonka', 'Cocoon']);
+    const central = scores.filter(s => !DEAI.has(s.name));
+    const deai = scores.filter(s => DEAI.has(s.name));
+
+    function renderGroup(group) {
+      return group.map(s => {
+        const pts = sparkData[s.name] || [];
+        const color = getColor(s.name);
+        const spark = pts.length >= 2 ? buildSparkline(pts, color) : '';
+        return `<div class="score-card">
+          <div class="score-company">${esc(s.name)}</div>
+          <div class="score-row">
+            <span class="score-value" style="color:${color}">${s.score}</span>
+            <span class="score-delta ${deltaClass(s.delta)}">${deltaStr(s.delta)}</span>
+          </div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill" style="width:${Math.min(100, Math.max(0, s.score))}%;background:${color}"></div>
+          </div>
+          ${spark ? `<div class="sparkline-wrap">${spark}</div>` : ''}
+          <span class="badge ${badgeClass(s.badge)}">${esc(s.badge)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    let html = `<div class="scores">${renderGroup(central)}</div>`;
+    if (deai.length > 0) {
+      html += `<div class="section-label" style="margin-top:16px">Decentralized AI &mdash; network momentum</div>
+               <div class="scores">${renderGroup(deai)}</div>`;
+    }
+    return html;
   }
 
   function renderSignals(signals) {
@@ -376,6 +656,7 @@
         <div class="signal-company">${esc(s.company)}</div>
         <div class="signal-text">${esc(s.text)}</div>
         <div class="signal-tag">${esc(s.tag)}</div>
+        <div class="signal-date">${esc(s.date || '')}</div>
       </div>`).join('')}</div>`;
   }
 
@@ -394,20 +675,51 @@
     </div>`;
   }
 
-  function renderError(msg) {
-    return `<div class="state-msg">${esc(msg)}</div>`;
+  // ── History chart interaction ─────────────────────────────────────────────
+
+  let activeCompanies = null;
+  let historyData = null;
+
+  function attachLegendHandlers() {
+    document.querySelectorAll('.legend-item').forEach(el => {
+      el.addEventListener('click', function () {
+        const name = this.dataset.name;
+        if (!activeCompanies) {
+          // First click — hide all except clicked
+          const allNames = Array.from(document.querySelectorAll('.legend-item')).map(e => e.dataset.name);
+          activeCompanies = new Set([name]);
+        } else if (activeCompanies.has(name)) {
+          activeCompanies.delete(name);
+          if (activeCompanies.size === 0) activeCompanies = null; // reset = show all
+        } else {
+          activeCompanies.add(name);
+        }
+        redrawHistory();
+      });
+    });
+  }
+
+  function redrawHistory() {
+    if (!historyData) return;
+    document.getElementById('history-container').innerHTML = buildHistoryChart(historyData, activeCompanies);
+    attachLegendHandlers();
   }
 
   // ── Mount ────────────────────────────────────────────────────────────────
 
-  function mount(data) {
-    document.getElementById('last-updated').textContent =
-      `updated ${timeAgo(data.updated_at)}`;
-    document.getElementById('footer-ts').textContent =
-      new Date(data.updated_at).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  function mount(data, history) {
+    // Prominent timestamp
+    document.getElementById('update-time').textContent = formatDateTime(data.updated_at);
+    document.getElementById('update-ago').textContent = timeAgo(data.updated_at);
+    document.getElementById('footer-ts').textContent = formatDateTime(data.updated_at);
 
     document.getElementById('scores-container').outerHTML =
-      `<div id="scores-container">${renderScores(data.scores)}</div>`;
+      `<div id="scores-container">${renderScores(data.scores, history)}</div>`;
+
+    historyData = history;
+    document.getElementById('history-container').innerHTML = buildHistoryChart(history, null);
+    attachLegendHandlers();
+
     document.getElementById('signals-container').outerHTML =
       `<div id="signals-container">${renderSignals(data.signals)}</div>`;
     document.getElementById('drama-container').outerHTML =
@@ -416,18 +728,18 @@
 
   // ── Boot ─────────────────────────────────────────────────────────────────
 
-  fetch('data/feed.json')
-    .then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(mount)
+  Promise.all([
+    fetch('data/feed.json').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+    fetch('data/history.json').then(r => r.ok ? r.json() : []).catch(() => [])
+  ])
+    .then(([feed, history]) => mount(feed, history))
     .catch(function (err) {
       const msg = 'data unavailable — ' + err.message;
-      document.getElementById('last-updated').textContent = 'data unavailable';
-      ['scores-container', 'signals-container', 'drama-container'].forEach(function (id) {
-        document.getElementById(id).outerHTML =
-          `<div id="${id}">${renderError(msg)}</div>`;
+      document.getElementById('update-time').textContent = 'unavailable';
+      document.getElementById('update-ago').textContent = '';
+      ['scores-container', 'signals-container', 'drama-container', 'history-container'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<div class="state-msg">${esc(msg)}</div>`;
       });
     });
 }());
