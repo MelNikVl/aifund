@@ -709,16 +709,17 @@ def collect_funding() -> dict:
 CRYPTO_AI_FILE = DATA_DIR / "crypto_ai.json"
 
 KNOWN_DEAI_PROJECTS = {
-    "bittensor": {"name": "Bittensor", "type": "training", "company": "Bittensor"},
-    "gensyn": {"name": "Gensyn", "type": "compute", "company": "Gensyn"},
-    "render-token": {"name": "Render", "type": "compute", "company": None},
-    "fetch-ai": {"name": "Fetch.ai", "type": "agents", "company": None},
-    "ocean-protocol": {"name": "Ocean Protocol", "type": "data", "company": None},
-    "akash-network": {"name": "Akash", "type": "compute", "company": None},
-    "the-graph": {"name": "The Graph", "type": "data", "company": None},
-    "near": {"name": "NEAR Protocol", "type": "inference", "company": None},
-    "virtuals-protocol": {"name": "Virtuals Protocol", "type": "agents", "company": None},
-    "venice-token": {"name": "Venice Token", "type": "inference", "company": None},
+    "bittensor":         {"name": "Bittensor",          "type": "training",  "company": "Bittensor"},
+    "gensyn":            {"name": "Gensyn",              "type": "compute",   "company": "Gensyn"},
+    "the-open-network":  {"name": "TON (Cocoon)",        "type": "inference", "company": "Cocoon"},
+    "render-token":      {"name": "Render",              "type": "compute",   "company": None},
+    "fetch-ai":          {"name": "Fetch.ai",            "type": "agents",    "company": None},
+    "akash-network":     {"name": "Akash",               "type": "compute",   "company": None},
+    "virtuals-protocol": {"name": "Virtuals Protocol",   "type": "agents",    "company": None},
+    "venice-token":      {"name": "Venice Token",        "type": "inference", "company": None},
+    "grass":             {"name": "Grass",               "type": "data",      "company": None},
+    "eigenlayer":        {"name": "EigenCloud",          "type": "compute",   "company": None},
+    "origintrail":       {"name": "OriginTrail",         "type": "data",      "company": None},
 }
 
 def collect_crypto_ai_sector() -> dict:
@@ -916,25 +917,24 @@ def calculate_deai_index(tokens: dict) -> dict:
 
 # ── YouTube collector ─────────────────────────────────────────────────────────
 
-YOUTUBE_QUERIES = {
-    "OpenAI":     "OpenAI ChatGPT",
-    "Anthropic":  "Anthropic Claude AI",
-    "Google":     "Google Gemini AI DeepMind",
-    "Meta":       "Meta Llama AI",
-    "DeepSeek":   "DeepSeek AI",
-    "Mistral":    "Mistral AI",
-    "xAI":        "xAI Grok Elon",
-    "Perplexity": "Perplexity AI",
-    "Bittensor":  "Bittensor TAO crypto AI",
-    "Gensyn":     "Gensyn AI compute",
-    "Gonka":      "Gonka AI decentralized",
+# Official YouTube channels (use channel videos, not search)
+YOUTUBE_OFFICIAL_CHANNELS = {
+    "OpenAI":    "UCXZCJLdBC09xxGZ6gcdrc6A",
+    "Anthropic": "UCrDwWp7EBBv4NwvScIpBDOA",
+    "Google":    "UCP7jMXSY2xbc3KCAE0MHQ-A",
 }
 
-# Special channels to always monitor
-YOUTUBE_CHANNELS = {
-    "Gonka": [
-        "UCLFkGIHKEDxMGFWkFqcaHtg",  # Gonka AI / Liberman brothers if available
-    ],
+# Search queries for companies without official channels
+YOUTUBE_QUERIES = {
+    "Meta":       "Meta Llama AI official",
+    "DeepSeek":   "DeepSeek AI model",
+    "Mistral":    "Mistral AI model",
+    "xAI":        "xAI Grok Elon Musk",
+    "Perplexity": "Perplexity AI search",
+    "Bittensor":  "Bittensor TAO crypto AI",
+    "Gensyn":     "Gensyn AI compute",
+    # Gonka — search by topic + Liberman brothers
+    "Gonka":      "Gonka AI Liberman brothers gonka protocol",
 }
 
 def collect_youtube() -> dict:
@@ -944,16 +944,51 @@ def collect_youtube() -> dict:
     
     print("  [youtube] fetching video stats…", file=sys.stderr)
     results = {}
-    
     from urllib.parse import quote
-    
+    published_after = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def get_video_stats(video_ids):
+        if not video_ids:
+            return 0, 0, 0
+        stats_url = (
+            f"https://www.googleapis.com/youtube/v3/videos"
+            f"?part=statistics&id={','.join(video_ids)}&key={api_key}"
+        )
+        stats_data = fetch_json(stats_url)
+        if not stats_data or "items" not in stats_data:
+            return 0, 0, 0
+        views = sum(int(i.get("statistics", {}).get("viewCount", 0)) for i in stats_data["items"])
+        likes = sum(int(i.get("statistics", {}).get("likeCount", 0)) for i in stats_data["items"])
+        return len(stats_data["items"]), views, likes
+
+    # Official channels — get their recent videos directly
+    for company, channel_id in YOUTUBE_OFFICIAL_CHANNELS.items():
+        try:
+            url = (
+                f"https://www.googleapis.com/youtube/v3/search"
+                f"?part=snippet&channelId={channel_id}&type=video"
+                f"&publishedAfter={published_after}"
+                f"&order=viewCount&maxResults=10&key={api_key}"
+            )
+            data = fetch_json(url)
+            if not data or "items" not in data:
+                continue
+            video_ids = [i["id"]["videoId"] for i in data["items"] if "videoId" in i.get("id", {})]
+            count, views, likes = get_video_stats(video_ids)
+            if count > 0:
+                results[company] = {"yt_videos_7d": count, "yt_views_7d": views, "yt_likes_7d": likes}
+                print(f"    {company} (official): {count} videos, {views:,} views", file=sys.stderr)
+            time.sleep(0.3)
+        except Exception as e:
+            print(f"    warn: youtube channel {company}: {e}", file=sys.stderr)
+
+    # Search-based for others
     for company, query in YOUTUBE_QUERIES.items():
         try:
-            # Search for recent videos
             url = (
                 f"https://www.googleapis.com/youtube/v3/search"
                 f"?part=snippet&q={quote(query)}&type=video"
-                f"&publishedAfter={(datetime.now(timezone.utc) - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                f"&publishedAfter={published_after}"
                 f"&order=viewCount&maxResults=10&key={api_key}"
             )
             data = fetch_json(url)
