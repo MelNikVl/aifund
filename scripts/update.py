@@ -65,6 +65,7 @@ FEEDS = [
     "https://www.reddit.com/r/LocalLLaMA/.rss",
     "https://hnrss.org/frontpage?q=AI+LLM+Claude+GPT+DeepSeek+Gemini+Llama+Mistral&count=30",
     # ArXiv — AI/ML papers
+    "https://techcrunch.com/category/venture/feed/",
     "https://rss.arxiv.org/rss/cs.AI",
     "https://rss.arxiv.org/rss/cs.LG",
     "https://rss.arxiv.org/rss/cs.CL",
@@ -613,6 +614,89 @@ def collect_reddit_sentiment() -> dict:
     return results
 
 
+
+
+# ── Funding signals ───────────────────────────────────────────────────────────
+
+FUNDING_FEEDS = [
+    "https://techcrunch.com/category/venture/feed/",
+    "https://venturebeat.com/category/ai/feed/",
+    "https://www.theinformation.com/feed",
+]
+
+FUNDING_KEYWORDS = {
+    "OpenAI":     ["openai"],
+    "Anthropic":  ["anthropic"],
+    "Google":     ["google deepmind", "google ai", "deepmind"],
+    "Meta":       ["meta ai", "meta platforms"],
+    "DeepSeek":   ["deepseek"],
+    "Mistral":    ["mistral"],
+    "xAI":        ["xai", "elon musk ai"],
+    "Perplexity": ["perplexity"],
+    "Bittensor":  ["bittensor", "opentensor"],
+    "Gensyn":     ["gensyn"],
+    "Gonka":      ["gonka"],
+}
+
+import re as _re
+
+def extract_funding_amount(text: str) -> float | None:
+    """Extract funding amount in millions from text."""
+    patterns = [
+        r"\$([\d,\.]+)\s*[Bb]illion",
+        r"\$([\d,\.]+)\s*[Mm]illion",
+        r"([\d,\.]+)\s*[Bb]illion\s*dollar",
+        r"([\d,\.]+)\s*[Mm]illion\s*dollar",
+    ]
+    for pat in patterns:
+        m = _re.search(pat, text, _re.IGNORECASE)
+        if m:
+            val = float(m.group(1).replace(",", ""))
+            if "illion" in pat.lower() and "billion" in pat.lower():
+                return val * 1000
+            elif "billion" in m.group(0).lower():
+                return val * 1000
+            return val
+    return None
+
+
+def collect_funding() -> dict:
+    """Parse funding news for each company."""
+    print("  [funding] scanning for investment news…", file=sys.stderr)
+    results = {}
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+
+    for url in FUNDING_FEEDS:
+        raw = fetch_url(url)
+        if not raw:
+            continue
+        for item in parse_feed(raw):
+            pub = parse_date(item.get("published"))
+            if pub is not None and pub.tzinfo is None:
+                pub = pub.replace(tzinfo=timezone.utc)
+            if pub and pub < cutoff:
+                continue
+            text = (item.get("title", "") + " " + item.get("summary", "")).lower()
+            for company, keywords in FUNDING_KEYWORDS.items():
+                if not any(kw in text for kw in keywords):
+                    continue
+                amount = extract_funding_amount(item.get("title", "") + " " + item.get("summary", ""))
+                if company not in results:
+                    results[company] = {"funding_events": 0, "funding_total_m": 0}
+                results[company]["funding_events"] += 1
+                if amount:
+                    results[company]["funding_total_m"] += amount
+
+    for company, data in results.items():
+        total = data["funding_total_m"]
+        events = data["funding_events"]
+        if total > 0:
+            print(f"    {company}: {events} events, ${total:.0f}M", file=sys.stderr)
+        else:
+            print(f"    {company}: {events} mentions", file=sys.stderr)
+    return results
+
+
 def collect_all_signals(github_token: str | None = None) -> dict:
     """Run all collectors and merge results."""
     signals = {
@@ -625,6 +709,7 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         "tokens":      {},
         "appstore":    {},
         "reddit":      {},
+        "funding":     {},
     }
 
     try:
@@ -671,6 +756,11 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         signals["reddit"]      = collect_reddit_sentiment()
     except Exception as e:
         print(f"  warn: reddit collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["funding"]     = collect_funding()
+    except Exception as e:
+        print(f"  warn: funding collector failed: {e}", file=sys.stderr)
 
     # Save raw signals for debugging / sources.html
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -726,6 +816,15 @@ def build_signals_block(signals: dict) -> str:
         reddit = signals.get("reddit", {}).get(company)
         if reddit:
             parts.append(f"Reddit: {reddit['reddit_posts_7d']} posts/7d avg score {reddit['reddit_avg_score']}")
+
+        funding = signals.get("funding", {}).get(company)
+        if funding:
+            total = funding.get("funding_total_m", 0)
+            events = funding.get("funding_events", 0)
+            if total > 0:
+                parts.append(f"Funding: ${total:.0f}M across {events} events this week")
+            else:
+                parts.append(f"Funding mentions: {events} this week")
 
         if parts:
             lines.append(f"\n{company}:")

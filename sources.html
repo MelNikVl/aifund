@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Pulse — Data Sources</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #080808;
+    --surface: #0f0f0f;
+    --surface2:#141414;
+    --border:  #1e1e1e;
+    --border2: #2a2a2a;
+    --text:    #e8e8e8;
+    --muted:   #555;
+    --muted2:  #777;
+    --up:      #4ade80;
+    --down:    #f87171;
+    --warn:    #fbbf24;
+    --mono:    'Space Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .shell {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--muted); font-weight: 400; }
+
+  .nav-link {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { border-color: var(--muted2); color: var(--text); }
+
+  /* ── Page title block ── */
+  .page-title {
+    margin-bottom: 32px;
+  }
+
+  .page-title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .page-title p {
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.7;
+    max-width: 640px;
+  }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .stat-cell {
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value.green { color: var(--up); }
+  .stat-value.yellow { color: var(--warn); }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  section { margin-bottom: 36px; }
+
+  /* ── Weight bar overview ── */
+  .weight-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+
+  .weight-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .weight-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .weight-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    width: 140px;
+    flex-shrink: 0;
+    color: var(--muted2);
+  }
+
+  .weight-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .weight-bar-fill {
+    height: 100%;
+    transition: width 0.6s ease;
+  }
+
+  .weight-pct {
+    font-size: 11px;
+    font-weight: 700;
+    width: 36px;
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Source table ── */
+  .source-table {
+    border: 1px solid var(--border);
+    background: var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .source-row {
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 28px 180px 1fr 90px 80px;
+    gap: 12px;
+    align-items: start;
+    padding: 14px 16px;
+  }
+
+  .source-row.thead {
+    background: var(--bg);
+    padding: 8px 16px;
+    align-items: center;
+  }
+
+  .col-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .source-icon {
+    font-size: 16px;
+    padding-top: 1px;
+  }
+
+  .source-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+
+  .source-url {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .source-desc {
+    font-size: 11px;
+    color: var(--muted2);
+    line-height: 1.6;
+  }
+
+  .source-desc .metric {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    padding: 1px 5px;
+    color: var(--muted2);
+    margin: 2px 2px 0 0;
+  }
+
+  .source-freq {
+    font-size: 10px;
+    color: var(--muted2);
+    white-space: nowrap;
+  }
+
+  /* Status badge */
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status.live   .status-dot { background: var(--up);   animation: blink 2s infinite; }
+  .status.soon   .status-dot { background: var(--warn); }
+  .status.planned .status-dot { background: var(--muted); }
+
+  .status.live    { color: var(--up);  }
+  .status.soon    { color: var(--warn); }
+  .status.planned { color: var(--muted); }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.25; }
+  }
+
+  /* ── How scoring works ── */
+  .formula-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.8;
+  }
+
+  .formula-block code {
+    display: block;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--up);
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  /* ── Methodology note ── */
+  .note-block {
+    background: var(--surface);
+    border-left: 2px solid var(--warn);
+    padding: 14px 16px;
+    font-size: 11px;
+    color: var(--muted2);
+    line-height: 1.7;
+    margin-top: 12px;
+  }
+
+  .note-block strong { color: var(--text); }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  @media (max-width: 640px) {
+    .source-row {
+      grid-template-columns: 28px 1fr;
+      grid-template-rows: auto auto auto;
+    }
+    .source-row > *:nth-child(3) { grid-column: 2; }
+    .source-freq, .status { display: none; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="header-top">
+      <div class="logo">AI <span>//</span> Pulse</div>
+      <a href="/" class="nav-link">← Back to dashboard</a>
+    </div>
+  </header>
+
+  <div class="page-title">
+    <h1>Data Sources &amp; Methodology</h1>
+    <p>Every score on this dashboard is computed from real, verifiable public data. This page documents every source we collect, how it's weighted, and what status it's in. No black boxes.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-label">Total sources</div>
+      <div class="stat-value">13</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Live now</div>
+      <div class="stat-value green">2</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">In progress</div>
+      <div class="stat-value yellow">4</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Planned</div>
+      <div class="stat-value" style="color:var(--muted2)">7</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-label">Update cadence</div>
+      <div class="stat-value" style="font-size:14px">2× / day</div>
+    </div>
+  </div>
+
+  <!-- Weight chart -->
+  <div class="weight-chart">
+    <div class="weight-title">Score composition — target weights</div>
+
+    <div class="weight-row">
+      <div class="weight-name">News coverage</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:25%;background:#e8e8e8"></div></div>
+      <div class="weight-pct">25%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">Reddit sentiment</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:15%;background:#f97316"></div></div>
+      <div class="weight-pct">15%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">GitHub activity</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:15%;background:#4ade80"></div></div>
+      <div class="weight-pct">15%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">HuggingFace DL</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:10%;background:#fbbf24"></div></div>
+      <div class="weight-pct">10%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">Funding signals</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:10%;background:#a78bfa"></div></div>
+      <div class="weight-pct">10%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">ArXiv papers</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:5%;background:#60a5fa"></div></div>
+      <div class="weight-pct">5%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">PyPI / npm DL</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:5%;background:#f87171"></div></div>
+      <div class="weight-pct">5%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">YouTube coverage</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:5%;background:#22d3ee"></div></div>
+      <div class="weight-pct">5%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">Hacker News</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:5%;background:#fb923c"></div></div>
+      <div class="weight-pct">5%</div>
+    </div>
+    <div class="weight-row">
+      <div class="weight-name">App Store rank</div>
+      <div class="weight-bar-track"><div class="weight-bar-fill" style="width:5%;background:#818cf8"></div></div>
+      <div class="weight-pct">5%</div>
+    </div>
+  </div>
+
+  <!-- Sources table -->
+  <section>
+    <div class="section-label">All data sources</div>
+
+    <div class="source-table">
+
+      <!-- Header -->
+      <div class="source-row thead">
+        <div></div>
+        <div class="col-label">Source</div>
+        <div class="col-label">What we collect</div>
+        <div class="col-label">Frequency</div>
+        <div class="col-label">Status</div>
+      </div>
+
+      <!-- 1. News RSS -->
+      <div class="source-row">
+        <div class="source-icon">📰</div>
+        <div>
+          <div class="source-name">News RSS</div>
+          <div class="source-url">TechCrunch · Wired · The Verge · Reuters · MIT TR · VentureBeat</div>
+        </div>
+        <div class="source-desc">
+          Article count, headline sentiment, mentions per company, topic classification (release / funding / controversy / regulatory).
+          <br><span class="metric">volume</span><span class="metric">sentiment</span><span class="metric">topic</span>
+        </div>
+        <div class="source-freq">2× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 2. Claude AI Analysis -->
+      <div class="source-row">
+        <div class="source-icon">🤖</div>
+        <div>
+          <div class="source-name">Claude AI</div>
+          <div class="source-url">api.anthropic.com</div>
+        </div>
+        <div class="source-desc">
+          All collected raw signals are fed to Claude claude-sonnet-4-20250514 which synthesizes a final score 0–100 with reasoning. Acts as the scoring engine.
+          <br><span class="metric">score synthesis</span><span class="metric">reasoning</span>
+        </div>
+        <div class="source-freq">2× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 3. Reddit -->
+      <div class="source-row">
+        <div class="source-icon">👾</div>
+        <div>
+          <div class="source-name">Reddit</div>
+          <div class="source-url">reddit.com/r/MachineLearning · r/LocalLLaMA · r/ChatGPT · r/ClaudeAI · r/Singularity</div>
+        </div>
+        <div class="source-desc">
+          Post volume mentioning each company, upvote ratio, comment sentiment, hot post titles. Developer community pulse.
+          <br><span class="metric">mention volume</span><span class="metric">upvote ratio</span><span class="metric">sentiment</span>
+        </div>
+        <div class="source-freq">2× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 4. GitHub -->
+      <div class="source-row">
+        <div class="source-icon">🐙</div>
+        <div>
+          <div class="source-name">GitHub API</div>
+          <div class="source-url">api.github.com</div>
+        </div>
+        <div class="source-desc">
+          Stars, forks, commits (30d), contributors, open issues and PRs for official company repositories. Fork-to-star ratio used as quality signal.
+          <br><span class="metric">stars delta</span><span class="metric">commits 30d</span><span class="metric">contributors</span><span class="metric">fork ratio</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 5. HuggingFace -->
+      <div class="source-row">
+        <div class="source-icon">🤗</div>
+        <div>
+          <div class="source-name">HuggingFace Hub</div>
+          <div class="source-url">huggingface.co/api</div>
+        </div>
+        <div class="source-desc">
+          Model downloads per week, likes, trending position for models released by each company org. Direct measure of developer adoption.
+          <br><span class="metric">weekly downloads</span><span class="metric">likes delta</span><span class="metric">trending rank</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 6. PyPI / npm -->
+      <div class="source-row">
+        <div class="source-icon">📦</div>
+        <div>
+          <div class="source-name">PyPI &amp; npm</div>
+          <div class="source-url">pypistats.org · npmjs.com</div>
+        </div>
+        <div class="source-desc">
+          Weekly download counts for official SDK packages: <code style="background:none;border:none;padding:0;color:var(--muted2)">openai</code>, <code style="background:none;border:none;padding:0;color:var(--muted2)">anthropic</code>, <code style="background:none;border:none;padding:0;color:var(--muted2)">google-generativeai</code>, <code style="background:none;border:none;padding:0;color:var(--muted2)">mistralai</code>. Most reliable developer adoption signal.
+          <br><span class="metric">weekly installs</span><span class="metric">week-over-week delta</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 7. ArXiv -->
+      <div class="source-row">
+        <div class="source-icon">📄</div>
+        <div>
+          <div class="source-name">ArXiv RSS</div>
+          <div class="source-url">arxiv.org/rss/cs.AI + cs.LG + cs.CL</div>
+        </div>
+        <div class="source-desc">
+          Research papers published per week with company affiliation in author field. Proxy for R&amp;D velocity and public research output.
+          <br><span class="metric">papers / week</span><span class="metric">citation signals</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 8. Hacker News -->
+      <div class="source-row">
+        <div class="source-icon">🔶</div>
+        <div>
+          <div class="source-name">Hacker News</div>
+          <div class="source-url">hacker-news.firebaseio.com (public API)</div>
+        </div>
+        <div class="source-desc">
+          Frontpage mentions per company, story points, comment count. Technical community signal — HN audience is early adopters and developers.
+          <br><span class="metric">frontpage hits</span><span class="metric">points</span><span class="metric">comments</span>
+        </div>
+        <div class="source-freq">2× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 9. YouTube -->
+      <div class="source-row">
+        <div class="source-icon">▶️</div>
+        <div>
+          <div class="source-name">YouTube Data API</div>
+          <div class="source-url">youtube.googleapis.com</div>
+        </div>
+        <div class="source-desc">
+          New videos mentioning each company per week, total view count delta, like ratio. Media coverage breadth and consumer awareness indicator.
+          <br><span class="metric">video count</span><span class="metric">view delta</span><span class="metric">like ratio</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status soon"><div class="status-dot"></div>Soon</div>
+      </div>
+
+      <!-- 10. App Store -->
+      <div class="source-row">
+        <div class="source-icon">📱</div>
+        <div>
+          <div class="source-name">App Store &amp; Google Play</div>
+          <div class="source-url">itunes.apple.com/lookup · play.google.com</div>
+        </div>
+        <div class="source-desc">
+          App ranking in productivity/AI category, rating score, review count delta for ChatGPT, Claude, Gemini, Perplexity apps. Consumer adoption signal.
+          <br><span class="metric">category rank</span><span class="metric">rating</span><span class="metric">review delta</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 11. Crunchbase -->
+      <div class="source-row">
+        <div class="source-icon">💰</div>
+        <div>
+          <div class="source-name">Funding (TechCrunch Venture)</div>
+          <div class="source-url">crunchbase.com · pitchbook.com</div>
+        </div>
+        <div class="source-desc">
+          Funding rounds, valuation updates, investor announcements. Major funding = strong positive signal; flat rounds or down rounds = negative.
+          <br><span class="metric">round size</span><span class="metric">valuation delta</span><span class="metric">investor count</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+      <!-- 12. Job Postings -->
+      <div class="source-row">
+        <div class="source-icon">💼</div>
+        <div>
+          <div class="source-name">Job Postings</div>
+          <div class="source-url">careers pages · LinkedIn · Indeed</div>
+        </div>
+        <div class="source-desc">
+          Total open positions per company, week-over-week delta, new role categories. Hiring velocity is a leading indicator of growth and funding deployment.
+          <br><span class="metric">open roles</span><span class="metric">weekly delta</span><span class="metric">role categories</span>
+        </div>
+        <div class="source-freq">1× / week</div>
+        <div class="status soon"><div class="status-dot"></div>Soon</div>
+      </div>
+
+      <!-- 13. Wikipedia -->
+      <div class="source-row">
+        <div class="source-icon">📖</div>
+        <div>
+          <div class="source-name">Wikipedia</div>
+          <div class="source-url">en.wikipedia.org/api/rest_v1</div>
+        </div>
+        <div class="source-desc">
+          Page views per day, edit frequency, recent change count for company pages. Unusual edit spikes often precede or follow major news.
+          <br><span class="metric">daily pageviews</span><span class="metric">edit frequency</span>
+        </div>
+        <div class="source-freq">1× / day</div>
+        <div class="status live"><div class="status-dot"></div>Live</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Scoring formula -->
+  <section>
+    <div class="section-label">How the score is calculated</div>
+    <div class="formula-block">
+      <p>All collected signals are normalized to 0–100 range and passed to Claude as structured context. Claude produces a final momentum score with a weighted synthesis:</p>
+      <code>Score = Σ ( signal_value × weight )
+
+Live:    News(25%) + Claude_synthesis
+Live: + Reddit(15%) + GitHub(15%) + HuggingFace(10%) + PyPI(5%) + Wikipedia(5%) + AppStore(5%) + HN(5%) + Funding(10%)
+Later: + ArXiv(5%) + HN(5%) + YouTube(5%) + AppStore(5%) + Funding(10%)
+
+Range: 0–100  |  Neutral baseline: 50
+Updated: 07:00 UTC and 19:00 UTC daily</code>
+      <p>The score reflects <strong>momentum</strong>, not absolute quality. A company can have great products but score low if there's been no activity. A sudden release or controversy moves the score immediately.</p>
+    </div>
+
+    <div class="note-block">
+      <strong>Transparency commitment:</strong> Every score update is logged with the source signals that produced it. Historical data is immutable — scores cannot be edited retroactively. If a data source fails or returns anomalous data, the update is skipped and marked with a warning flag visible on the dashboard.
+    </div>
+  </section>
+
+  <footer>
+    <span>AI Pulse &mdash; auto-updated 07:00 &amp; 19:00 UTC</span>
+    <a href="/" style="color:var(--muted)">← dashboard</a>
+  </footer>
+
+</div>
+</body>
+</html>
