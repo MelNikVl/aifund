@@ -76,7 +76,7 @@ GITHUB_REPOS = {
     "OpenAI":     ["openai/openai-python", "openai/openai-node", "openai/whisper", "openai/chatgpt-retrieval-plugin"],
     "Anthropic":  ["anthropics/anthropic-sdk-python", "anthropics/anthropic-sdk-typescript"],
     "Google":     ["google-gemini/generative-ai-python", "google-deepmind/gemma", "google-deepmind/alphafold"],
-    "Meta":       ["meta-llama/Llama-3.1-8B-Instruct", "facebookresearch/llama", "meta-llama/llama-models"],
+    "Meta":       ["meta-llama/Llama-3.2-3B-Instruct", "facebookresearch/llama", "meta-llama/llama-models"],
     "DeepSeek":   ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-Coder-V2"],
     "Mistral":    ["mistralai/mistral-src", "mistralai/mistral-inference"],
     "xAI":        ["xai-org/grok-1"],
@@ -448,6 +448,49 @@ def collect_hackernews() -> dict:
     return {k: {"hn_mentions_48h": v} for k, v in results.items() if v > 0}
 
 
+
+
+def collect_wikipedia() -> dict:
+    """
+    Track Wikipedia page views for each company (last 7 days).
+    Uses Wikimedia REST API — no auth required.
+    """
+    print("  [wikipedia] fetching page views…", file=sys.stderr)
+    
+    WIKI_PAGES = {
+        "OpenAI":     "OpenAI",
+        "Anthropic":  "Anthropic",
+        "Google":     "Google_DeepMind",
+        "Meta":       "Meta_AI",
+        "DeepSeek":   "DeepSeek",
+        "Mistral":    "Mistral_AI",
+        "xAI":        "xAI",
+        "Perplexity": "Perplexity_AI",
+        "Bittensor":  "Bittensor",
+        "Gensyn":     "Distributed_computing",
+    }
+    
+    results = {}
+    end_date = datetime.now(timezone.utc)
+    start_date = end_date - timedelta(days=7)
+    
+    for company, page in WIKI_PAGES.items():
+        try:
+            start_str = start_date.strftime("%Y%m%d")
+            end_str = end_date.strftime("%Y%m%d")
+            url = f"https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/en.wikipedia/all-access/all-agents/{page}/daily/{start_str}/{end_str}"
+            data = fetch_json(url)
+            if not data or "items" not in data:
+                continue
+            total = sum(item.get("views", 0) for item in data["items"])
+            if total > 0:
+                results[company] = {"wiki_views_7d": total}
+                print(f"    {company}: {total:,} views", file=sys.stderr)
+        except Exception as e:
+            pass
+    
+    return results
+
 def collect_all_signals(github_token: str | None = None) -> dict:
     """Run all collectors and merge results."""
     signals = {
@@ -456,6 +499,7 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         "pypi":        {},
         "arxiv":       {},
         "hackernews":  {},
+        "wikipedia":   {},
     }
 
     try:
@@ -482,6 +526,11 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         signals["hackernews"]  = collect_hackernews()
     except Exception as e:
         print(f"  warn: hn collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["wikipedia"]   = collect_wikipedia()
+    except Exception as e:
+        print(f"  warn: wikipedia collector failed: {e}", file=sys.stderr)
 
     # Save raw signals for debugging / sources.html
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -521,6 +570,10 @@ def build_signals_block(signals: dict) -> str:
         hn = signals["hackernews"].get(company)
         if hn:
             parts.append(f"HN: {hn['hn_mentions_48h']} mentions")
+
+        wiki = signals.get("wikipedia", {}).get(company)
+        if wiki:
+            parts.append(f"Wikipedia: {wiki['wiki_views_7d']:,} views/7d")
 
         if parts:
             lines.append(f"\n{company}:")
