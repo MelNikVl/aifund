@@ -697,6 +697,216 @@ def collect_funding() -> dict:
     return results
 
 
+
+
+# ── Crypto AI Sector Index ────────────────────────────────────────────────────
+
+CRYPTO_AI_FILE = DATA_DIR / "crypto_ai.json"
+
+KNOWN_DEAI_PROJECTS = {
+    "bittensor": {"name": "Bittensor", "type": "training", "company": "Bittensor"},
+    "gensyn": {"name": "Gensyn", "type": "compute", "company": "Gensyn"},
+    "render-token": {"name": "Render", "type": "compute", "company": None},
+    "fetch-ai": {"name": "Fetch.ai", "type": "agents", "company": None},
+    "ocean-protocol": {"name": "Ocean Protocol", "type": "data", "company": None},
+    "akash-network": {"name": "Akash", "type": "compute", "company": None},
+    "the-graph": {"name": "The Graph", "type": "data", "company": None},
+    "near": {"name": "NEAR Protocol", "type": "inference", "company": None},
+    "virtuals-protocol": {"name": "Virtuals Protocol", "type": "agents", "company": None},
+    "venice-token": {"name": "Venice Token", "type": "inference", "company": None},
+}
+
+def collect_crypto_ai_sector() -> dict:
+    """
+    Fetch top AI tokens from CoinGecko, analyze new ones with Claude,
+    build a DeAI sector index.
+    """
+    print("  [crypto_ai] fetching AI token sector…", file=sys.stderr)
+    
+    # Load existing data
+    existing = {}
+    if CRYPTO_AI_FILE.exists():
+        try:
+            existing = json.loads(CRYPTO_AI_FILE.read_text())
+        except Exception:
+            existing = {}
+    
+    known_ids = set(existing.get("tokens", {}).keys())
+    
+    # Fetch top 50 AI tokens from CoinGecko
+    url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=artificial-intelligence&order=market_cap_desc&per_page=20&page=1&price_change_percentage=24h,7d"
+    coins = fetch_json(url)
+    if not coins or not isinstance(coins, list):
+        print("  warn: CoinGecko AI category fetch failed", file=sys.stderr)
+        return existing
+    
+    tokens = existing.get("tokens", {})
+    new_tokens = []
+    
+    for coin in coins:
+        cid = coin.get("id", "")
+        if not cid:
+            continue
+        
+        price = coin.get("current_price", 0) or 0
+        mcap = coin.get("market_cap", 0) or 0
+        change_24h = coin.get("price_change_percentage_24h", 0) or 0
+        change_7d = coin.get("price_change_percentage_7d_in_currency", 0) or 0
+        volume = coin.get("total_volume", 0) or 0
+        
+        # Update price data for existing tokens
+        if cid in tokens:
+            tokens[cid].update({
+                "price_usd": round(price, 6),
+                "mcap_m": round(mcap / 1e6, 1),
+                "change_24h": round(change_24h, 2),
+                "change_7d": round(change_7d, 2),
+                "volume_m": round(volume / 1e6, 1),
+                "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            })
+        elif cid in KNOWN_DEAI_PROJECTS:
+            # Known project — add directly
+            info = KNOWN_DEAI_PROJECTS[cid]
+            tokens[cid] = {
+                "name": info["name"],
+                "symbol": coin.get("symbol", "").upper(),
+                "type": info["type"],
+                "company": info["company"],
+                "price_usd": round(price, 6),
+                "mcap_m": round(mcap / 1e6, 1),
+                "change_24h": round(change_24h, 2),
+                "change_7d": round(change_7d, 2),
+                "volume_m": round(volume / 1e6, 1),
+                "ai_score": None,
+                "ai_type": info["type"],
+                "ai_summary": None,
+                "verified": True,
+                "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
+            print(f"    + {info['name']} ({coin.get('symbol','').upper()}) ${price:.3f} mcap ${mcap/1e6:.0f}M", file=sys.stderr)
+        else:
+            # New unknown token — queue for Claude analysis
+            new_tokens.append({
+                "id": cid,
+                "name": coin.get("name", ""),
+                "symbol": coin.get("symbol", "").upper(),
+                "price_usd": round(price, 6),
+                "mcap_m": round(mcap / 1e6, 1),
+                "change_24h": round(change_24h, 2),
+                "change_7d": round(change_7d, 2),
+                "volume_m": round(volume / 1e6, 1),
+            })
+    
+    # Analyze new tokens with Claude — in batches of 8
+    if new_tokens:
+        print(f"  [crypto_ai] analyzing {len(new_tokens)} new tokens with Claude…", file=sys.stderr)
+        try:
+            analyzed = []
+            for i in range(0, len(new_tokens), 8):
+                batch = new_tokens[i:i+8]
+                batch_result = analyze_new_tokens_with_claude(batch)
+                analyzed.extend(batch_result)
+                time.sleep(1)
+            for token_data in analyzed:
+                cid = token_data.pop("id", None)
+                if cid:
+                    tokens[cid] = token_data
+                    if token_data.get("is_real_ai"):
+                        print(f"    + NEW: {token_data.get('name')} ({token_data.get('symbol')}) — {token_data.get('ai_type')}", file=sys.stderr)
+        except Exception as e:
+            print(f"  warn: Claude token analysis failed: {e}", file=sys.stderr)
+    
+    # Calculate sector index
+    sector_index = calculate_deai_index(tokens)
+    
+    result = {
+        "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "sector_index": sector_index,
+        "tokens": tokens,
+    }
+    
+    CRYPTO_AI_FILE.write_text(json.dumps(result, indent=2, ensure_ascii=False))
+    print(f"  wrote {CRYPTO_AI_FILE} ({len(tokens)} tokens)", file=sys.stderr)
+    return result
+
+
+def analyze_new_tokens_with_claude(new_tokens: list) -> list:
+    """Use Claude to analyze if new tokens are real AI projects."""
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    
+    tokens_text = json.dumps(new_tokens, indent=2)
+    
+    message = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=2048,
+        system="""You are a crypto/AI analyst. Given a list of tokens from CoinGecko's AI category, 
+analyze each one and determine if it's a real AI infrastructure project.
+
+For each token return JSON:
+{
+  "id": "<coingecko_id>",
+  "name": "<name>",
+  "symbol": "<symbol>",
+  "is_real_ai": true/false,
+  "ai_type": "compute|inference|training|agents|data|defi|other",
+  "ai_summary": "one sentence description",
+  "ai_score": 0-100,
+  "company": null or company name if affiliated,
+  "price_usd": <price>,
+  "mcap_m": <mcap in millions>,
+  "change_24h": <24h change>,
+  "change_7d": <7d change>,
+  "volume_m": <volume in millions>,
+  "verified": false,
+  "updated_at": "<ISO datetime>"
+}
+
+is_real_ai = true only if the project actually builds AI infrastructure, models, or tooling.
+Reject pure memecoins, NFT projects, or projects that just use "AI" in name without substance.
+Return only valid JSON array, no markdown.""",
+        messages=[{"role": "user", "content": f"Analyze these tokens:\n{tokens_text}"}],
+    )
+    
+    raw = message.content[0].text.strip()
+    raw = re.sub(r"^```[a-z]*\n?", "", raw)
+    raw = re.sub(r"\n?```$", "", raw)
+    return json.loads(raw)
+
+
+def calculate_deai_index(tokens: dict) -> dict:
+    """Calculate weighted DeAI sector index (like S&P but for AI crypto)."""
+    real_ai = {k: v for k, v in tokens.items() if v.get("is_real_ai", v.get("verified", False))}
+    
+    if not real_ai:
+        return {"value": 50, "change_24h": 0, "change_7d": 0, "token_count": 0}
+    
+    # Market-cap weighted index
+    total_mcap = sum(t.get("mcap_m", 0) for t in real_ai.values())
+    if total_mcap == 0:
+        return {"value": 50, "change_24h": 0, "change_7d": 0, "token_count": len(real_ai)}
+    
+    weighted_change_24h = sum(
+        t.get("change_24h", 0) * t.get("mcap_m", 0) / total_mcap
+        for t in real_ai.values()
+    )
+    weighted_change_7d = sum(
+        t.get("change_7d", 0) * t.get("mcap_m", 0) / total_mcap
+        for t in real_ai.values()
+    )
+    
+    # Index value: start at 100, adjust by 7d performance
+    base = 100
+    index_value = round(base * (1 + weighted_change_7d / 100), 1)
+    
+    return {
+        "value": index_value,
+        "change_24h": round(weighted_change_24h, 2),
+        "change_7d": round(weighted_change_7d, 2),
+        "total_mcap_b": round(total_mcap / 1000, 2),
+        "token_count": len(real_ai),
+    }
+
+
 def collect_all_signals(github_token: str | None = None) -> dict:
     """Run all collectors and merge results."""
     signals = {
@@ -710,6 +920,7 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         "appstore":    {},
         "reddit":      {},
         "funding":     {},
+        "crypto_ai":   {},
     }
 
     try:
@@ -761,6 +972,11 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         signals["funding"]     = collect_funding()
     except Exception as e:
         print(f"  warn: funding collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["crypto_ai"]   = collect_crypto_ai_sector()
+    except Exception as e:
+        print(f"  warn: crypto_ai collector failed: {e}", file=sys.stderr)
 
     # Save raw signals for debugging / sources.html
     DATA_DIR.mkdir(parents=True, exist_ok=True)
