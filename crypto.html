@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Pulse — DeAI Crypto Markets</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080808;
+    --surface:  #0d0d0d;
+    --surface2: #121212;
+    --border:   #1c1c1c;
+    --border2:  #262626;
+    --text:     #e2e2e2;
+    --muted:    #444;
+    --muted2:   #666;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --blue:     #3b82f6;
+    --yellow:   #eab308;
+    --mono:     'Space Mono', monospace;
+    --mono2:    'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .logo { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  .logo span { color: var(--muted2); font-weight: 400; }
+
+  .nav-links { display: flex; gap: 16px; }
+  .nav-links a {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    transition: all 0.15s;
+  }
+  .nav-links a:hover, .nav-links a.active { border-color: var(--text); color: var(--text); }
+
+  /* Sector index bar */
+  .sector-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .sector-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted2);
+  }
+
+  .sector-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .sector-change {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .sector-change.up { color: var(--green); }
+  .sector-change.down { color: var(--red); }
+
+  .sector-meta {
+    font-size: 10px;
+    color: var(--muted2);
+    margin-left: auto;
+  }
+
+  /* Token grid */
+  .token-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .token-card {
+    background: var(--surface);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .token-card:hover { background: var(--surface2); }
+
+  .token-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 8px;
+  }
+
+  .token-name-wrap { display: flex; flex-direction: column; gap: 2px; }
+
+  .token-symbol {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+
+  .token-name {
+    font-size: 9px;
+    color: var(--muted2);
+    letter-spacing: 0.04em;
+  }
+
+  .token-price-wrap { text-align: right; }
+
+  .token-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .token-change {
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .token-change.up { color: var(--green); }
+  .token-change.down { color: var(--red); }
+
+  /* Candlestick chart */
+  .candle-chart {
+    width: 100%;
+    height: 120px;
+    padding: 0 14px 8px;
+  }
+
+  .candle-chart svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .token-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .token-mcap {
+    font-size: 10px;
+    color: var(--muted2);
+  }
+
+  .token-type {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--border2);
+    padding: 2px 6px;
+    color: var(--muted2);
+  }
+  .token-type.compute { border-color: #3b82f6; color: #3b82f6; }
+  .token-type.training { border-color: #a855f7; color: #a855f7; }
+  .token-type.agents { border-color: #f97316; color: #f97316; }
+  .token-type.data { border-color: #eab308; color: #eab308; }
+  .token-type.inference { border-color: #22d3ee; color: #22d3ee; }
+
+  /* Full chart section */
+  .chart-section {
+    margin-bottom: 32px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .full-chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+  }
+
+  .chart-controls {
+    display: flex;
+    gap: 1px;
+    margin-bottom: 12px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+
+  .chart-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    background: var(--surface);
+    border: none;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .chart-btn:hover { background: var(--surface2); color: var(--text); }
+  .chart-btn.active { background: var(--surface2); color: var(--text); }
+
+  .full-chart-svg-wrap {
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+  }
+
+  /* Sector breakdown */
+  .sector-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .sector-item {
+    background: var(--surface);
+    padding: 14px;
+  }
+
+  .sector-item-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    margin-bottom: 6px;
+  }
+
+  .sector-item-value {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .sector-item-sub {
+    font-size: 10px;
+    color: var(--muted2);
+    margin-top: 2px;
+  }
+
+  /* Loading */
+  .state-msg {
+    padding: 40px;
+    text-align: center;
+    color: var(--muted2);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo">AI <span>//</span> Pulse</div>
+    <div class="nav-links">
+      <a href="/">Dashboard</a>
+      <a href="/crypto.html" class="active">DeAI Markets</a>
+      <a href="/sources.html">Sources</a>
+    </div>
+  </header>
+
+  <!-- Sector index -->
+  <div class="sector-bar" id="sector-bar">
+    <div>
+      <div class="sector-label">DeAI Sector Index</div>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+        <span class="sector-value" id="sector-value">—</span>
+        <span class="sector-change" id="sector-change">—</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div>
+        <div class="sector-label">Total MCap</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px" id="sector-mcap">—</div>
+      </div>
+      <div>
+        <div class="sector-label">Tokens tracked</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px" id="sector-count">—</div>
+      </div>
+      <div>
+        <div class="sector-label">7d change</div>
+        <div style="font-size:14px;font-weight:700;margin-top:2px" id="sector-7d">—</div>
+      </div>
+    </div>
+    <div class="sector-meta" id="sector-updated">—</div>
+  </div>
+
+  <!-- Sector breakdown by type -->
+  <div class="chart-section">
+    <div class="section-label">Sector breakdown</div>
+    <div class="sector-breakdown" id="sector-breakdown">
+      <div class="state-msg">loading…</div>
+    </div>
+  </div>
+
+  <!-- Token cards with mini candles -->
+  <div class="chart-section">
+    <div class="section-label">DeAI tokens — 30 day candles</div>
+    <div class="token-grid" id="token-grid">
+      <div class="state-msg" style="grid-column:1/-1">fetching market data…</div>
+    </div>
+  </div>
+
+  <!-- Full candlestick chart -->
+  <div class="chart-section">
+    <div class="section-label">Full chart</div>
+    <div class="full-chart-wrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div id="full-chart-title" style="font-size:13px;font-weight:700">Select a token</div>
+        <div class="chart-controls" id="day-controls">
+          <button class="chart-btn active" data-days="7">7D</button>
+          <button class="chart-btn" data-days="14">14D</button>
+          <button class="chart-btn active" data-days="30">30D</button>
+          <button class="chart-btn" data-days="90">90D</button>
+        </div>
+      </div>
+      <div class="full-chart-svg-wrap" id="full-chart">
+        <div class="state-msg">click a token card to view full chart</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>AI Pulse — DeAI Markets — data via CoinGecko</span>
+    <span id="footer-ts"></span>
+  </footer>
+
+</div>
+
+<script>
+(function() {
+'use strict';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+function fmt(n, dec=2) {
+  if (n === null || n === undefined) return '—';
+  return Number(n).toLocaleString('en-US', {minimumFractionDigits: dec, maximumFractionDigits: dec});
+}
+
+function fmtPrice(p) {
+  if (!p) return '—';
+  if (p >= 1000) return '$' + fmt(p, 0);
+  if (p >= 1)    return '$' + fmt(p, 2);
+  if (p >= 0.01) return '$' + fmt(p, 4);
+  return '$' + fmt(p, 6);
+}
+
+function fmtMcap(m) {
+  if (!m) return '—';
+  if (m >= 1000) return '$' + fmt(m/1000, 1) + 'B';
+  return '$' + fmt(m, 0) + 'M';
+}
+
+function changeClass(v) { return v >= 0 ? 'up' : 'down'; }
+function changeStr(v) {
+  if (v === null || v === undefined) return '—';
+  return (v >= 0 ? '+' : '') + fmt(v, 1) + '%';
+}
+
+function timeAgo(isoStr) {
+  const diff = Date.now() - new Date(isoStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2)  return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+// ── Candlestick SVG renderer ──────────────────────────────────────────────────
+
+function renderCandles(ohlc, W, H, padX, padT, padB) {
+  if (!ohlc || ohlc.length < 2) return '<text x="50%" y="50%" text-anchor="middle" fill="#444" font-size="10">no data</text>';
+
+  const prices = ohlc.flatMap(c => [c[2], c[3]]); // high, low
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+
+  const chartW = W - padX * 2;
+  const chartH = H - padT - padB;
+
+  const candleW = Math.max(1, Math.floor(chartW / ohlc.length) - 1);
+
+  function py(price) {
+    return padT + chartH - ((price - minP) / range) * chartH;
+  }
+
+  let svg = '';
+
+  // Grid lines
+  const gridPrices = [minP, minP + range/2, maxP];
+  gridPrices.forEach(p => {
+    const y = py(p).toFixed(1);
+    svg += `<line x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" stroke="#1a1a1a" stroke-width="1"/>`;
+  });
+
+  ohlc.forEach((c, i) => {
+    const [ts, open, high, low, close] = c;
+    const x = padX + (i / (ohlc.length - 1)) * chartW;
+    const isUp = close >= open;
+    const color = isUp ? '#22c55e' : '#ef4444';
+
+    const bodyTop = py(Math.max(open, close));
+    const bodyBot = py(Math.min(open, close));
+    const bodyH = Math.max(1, bodyBot - bodyTop);
+    const wickTop = py(high);
+    const wickBot = py(low);
+    const cx = (x - candleW / 2).toFixed(1);
+
+    // Wick
+    svg += `<line x1="${x.toFixed(1)}" y1="${wickTop.toFixed(1)}" x2="${x.toFixed(1)}" y2="${wickBot.toFixed(1)}" stroke="${color}" stroke-width="1" opacity="0.6"/>`;
+    // Body
+    svg += `<rect x="${cx}" y="${bodyTop.toFixed(1)}" width="${candleW}" height="${bodyH.toFixed(1)}" fill="${color}" opacity="0.9"/>`;
+  });
+
+  return svg;
+}
+
+function buildCandleSVG(ohlc, W, H, padX=4, padT=4, padB=4) {
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    ${renderCandles(ohlc, W, H, padX, padT, padB)}
+  </svg>`;
+}
+
+// ── OHLC cache & fetcher ──────────────────────────────────────────────────────
+
+const ohlcCache = {};
+
+async function fetchOHLC(coinId, days) {
+  const key = `${coinId}_${days}`;
+  if (ohlcCache[key]) return ohlcCache[key];
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    ohlcCache[key] = data;
+    return data;
+  } catch { return null; }
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let selectedToken = null;
+let selectedDays = 30;
+let cryptoData = null;
+
+// ── Render token grid ─────────────────────────────────────────────────────────
+
+async function renderTokenGrid(tokens) {
+  const grid = document.getElementById('token-grid');
+  const realTokens = Object.entries(tokens)
+    .filter(([, t]) => t.is_real_ai || t.verified)
+    .sort((a, b) => (b[1].mcap_m || 0) - (a[1].mcap_m || 0));
+
+  if (!realTokens.length) {
+    grid.innerHTML = '<div class="state-msg" style="grid-column:1/-1">no tokens found</div>';
+    return;
+  }
+
+  // Fetch OHLC for all tokens in parallel (limit to top 12)
+  const top = realTokens.slice(0, 12);
+  const ohlcResults = await Promise.all(
+    top.map(([id]) => fetchOHLC(id, 30))
+  );
+
+  grid.innerHTML = top.map(([id, t], i) => {
+    const ohlc = ohlcResults[i] || [];
+    const miniSvg = ohlc.length > 1 ? buildCandleSVG(ohlc, 312, 100, 2, 2, 2) : '';
+    const c24 = t.change_24h;
+    const c7 = t.change_7d;
+    return `<div class="token-card" data-id="${esc(id)}" onclick="selectToken('${esc(id)}', '${esc(t.name || id)}')">
+      <div class="token-header">
+        <div class="token-name-wrap">
+          <div class="token-symbol">${esc(t.symbol || id.toUpperCase())}</div>
+          <div class="token-name">${esc(t.name || id)}</div>
+        </div>
+        <div class="token-price-wrap">
+          <div class="token-price">${fmtPrice(t.price_usd)}</div>
+          <div class="token-change ${changeClass(c24)}">${changeStr(c24)} 24h</div>
+        </div>
+      </div>
+      <div class="candle-chart">${miniSvg || '<div class="state-msg" style="padding:20px">loading…</div>'}</div>
+      <div class="token-footer">
+        <div class="token-mcap">MCap ${fmtMcap(t.mcap_m)} · 7d ${changeStr(c7)}</div>
+        <div class="token-type ${esc(t.ai_type || t.type || 'other')}">${esc(t.ai_type || t.type || 'other')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Select token for full chart ───────────────────────────────────────────────
+
+window.selectToken = async function(id, name) {
+  selectedToken = id;
+  document.getElementById('full-chart-title').textContent = name;
+  document.querySelectorAll('.token-card').forEach(c => {
+    c.style.outline = c.dataset.id === id ? '1px solid #444' : 'none';
+  });
+  await updateFullChart();
+};
+
+async function updateFullChart() {
+  if (!selectedToken) return;
+  const wrap = document.getElementById('full-chart');
+  wrap.innerHTML = '<div class="state-msg">loading chart…</div>';
+  const ohlc = await fetchOHLC(selectedToken, selectedDays);
+  if (!ohlc || ohlc.length < 2) {
+    wrap.innerHTML = '<div class="state-msg">no data available</div>';
+    return;
+  }
+  const W = wrap.clientWidth || 800;
+  const H = 280;
+  const padX = 50, padT = 16, padB = 24;
+  const chartW = W - padX * 2;
+  const chartH = H - padT - padB;
+
+  const prices = ohlc.flatMap(c => [c[2], c[3]]);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+
+  function py(price) { return padT + chartH - ((price - minP) / range) * chartH; }
+
+  // Y axis labels
+  let yAxis = '';
+  const steps = 5;
+  for (let i = 0; i <= steps; i++) {
+    const p = minP + (range / steps) * i;
+    const y = py(p);
+    yAxis += `<line x1="${padX}" y1="${y.toFixed(1)}" x2="${W - padX/2}" y2="${y.toFixed(1)}" stroke="#1c1c1c" stroke-width="1"/>`;
+    yAxis += `<text x="${padX - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#444" font-family="monospace">${fmtPrice(p)}</text>`;
+  }
+
+  // X axis labels
+  let xAxis = '';
+  const xStep = Math.max(1, Math.floor(ohlc.length / 6));
+  ohlc.forEach((c, i) => {
+    if (i % xStep === 0) {
+      const x = padX + (i / (ohlc.length - 1)) * chartW;
+      const d = new Date(c[0]);
+      const label = (d.getMonth()+1) + '/' + d.getDate();
+      xAxis += `<text x="${x.toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="#444" font-family="monospace">${label}</text>`;
+    }
+  });
+
+  const candles = renderCandles(ohlc, W, H, padX, padT, padB);
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+    <rect x="${padX}" y="${padT}" width="${chartW}" height="${chartH}" fill="#0a0a0a"/>
+    ${yAxis}${xAxis}${candles}
+    <rect x="${padX}" y="${padT}" width="${chartW}" height="${chartH}" fill="none" stroke="#1c1c1c" stroke-width="1"/>
+  </svg>`;
+}
+
+// ── Day controls ──────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.chart-btn[data-days]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.chart-btn[data-days]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDays = parseInt(btn.dataset.days);
+    await updateFullChart();
+  });
+});
+
+// ── Sector breakdown ──────────────────────────────────────────────────────────
+
+function renderSectorBreakdown(tokens) {
+  const byType = {};
+  Object.values(tokens).forEach(t => {
+    if (!t.is_real_ai && !t.verified) return;
+    const type = t.ai_type || t.type || 'other';
+    if (!byType[type]) byType[type] = { count: 0, mcap: 0, change: [] };
+    byType[type].count++;
+    byType[type].mcap += t.mcap_m || 0;
+    if (t.change_24h !== undefined) byType[type].change.push(t.change_24h);
+  });
+
+  const el = document.getElementById('sector-breakdown');
+  const entries = Object.entries(byType).sort((a, b) => b[1].mcap - a[1].mcap);
+  if (!entries.length) { el.innerHTML = '<div class="state-msg">no data</div>'; return; }
+
+  el.innerHTML = entries.map(([type, d]) => {
+    const avgChange = d.change.length ? d.change.reduce((a,b)=>a+b,0)/d.change.length : 0;
+    return `<div class="sector-item">
+      <div class="sector-item-label">${esc(type)}</div>
+      <div class="sector-item-value" style="color:${avgChange>=0?'#22c55e':'#ef4444'}">${changeStr(avgChange)}</div>
+      <div class="sector-item-sub">${d.count} token${d.count!==1?'s':''} · ${fmtMcap(d.mcap)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+async function boot() {
+  try {
+    const r = await fetch('data/crypto_ai.json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    cryptoData = await r.json();
+
+    const idx = cryptoData.sector_index || {};
+    const idxVal = idx.value || 100;
+    const idxC24 = idx.change_24h || 0;
+    const idxC7 = idx.change_7d || 0;
+
+    document.getElementById('sector-value').textContent = idxVal.toFixed(1);
+    const sc = document.getElementById('sector-change');
+    sc.textContent = changeStr(idxC24) + ' 24h';
+    sc.className = 'sector-change ' + changeClass(idxC24);
+    document.getElementById('sector-mcap').textContent = fmtMcap((idx.total_mcap_b || 0) * 1000);
+    document.getElementById('sector-count').textContent = idx.token_count || '—';
+    const s7 = document.getElementById('sector-7d');
+    s7.textContent = changeStr(idxC7);
+    s7.style.color = idxC7 >= 0 ? '#22c55e' : '#ef4444';
+    document.getElementById('sector-updated').textContent = timeAgo(cryptoData.updated_at);
+    document.getElementById('footer-ts').textContent = cryptoData.updated_at ? new Date(cryptoData.updated_at).toISOString().slice(0,16).replace('T',' ') + ' UTC' : '';
+
+    renderSectorBreakdown(cryptoData.tokens || {});
+    await renderTokenGrid(cryptoData.tokens || {});
+
+    // Auto-select first token
+    const first = Object.entries(cryptoData.tokens || {}).find(([,t]) => t.is_real_ai || t.verified);
+    if (first) selectToken(first[0], first[1].name || first[0]);
+
+  } catch(e) {
+    document.getElementById('token-grid').innerHTML = `<div class="state-msg" style="grid-column:1/-1">error loading data: ${esc(e.message)}</div>`;
+  }
+}
+
+boot();
+}());
+</script>
+</body>
+</html>
