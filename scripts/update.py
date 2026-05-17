@@ -464,7 +464,7 @@ def collect_wikipedia() -> dict:
         "Meta":       "Meta_AI",
         "DeepSeek":   "DeepSeek",
         "Mistral":    "Mistral_AI",
-        "xAI":        "xAI",
+        "xAI":        "xAI_(company)",
         "Perplexity": "Perplexity_AI",
         "Bittensor":  "Bittensor",
         "Gensyn":     "Distributed_computing",
