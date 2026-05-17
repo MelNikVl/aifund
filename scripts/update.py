@@ -66,6 +66,10 @@ FEEDS = [
     "https://hnrss.org/frontpage?q=AI+LLM+Claude+GPT+DeepSeek+Gemini+Llama+Mistral&count=30",
     # ArXiv — AI/ML papers
     "https://techcrunch.com/category/venture/feed/",
+    # Major news outlets
+    "https://www.theguardian.com/technology/artificialintelligenceai/rss",
+    "https://feeds.arstechnica.com/arstechnica/technology-lab",
+    "https://www.technologyreview.com/feed/",
     "https://rss.arxiv.org/rss/cs.AI",
     "https://rss.arxiv.org/rss/cs.LG",
     "https://rss.arxiv.org/rss/cs.CL",
@@ -500,6 +504,7 @@ COINGECKO_IDS = {
     "Bittensor": "bittensor",
     "Gensyn":    "gensyn",
     "Gonka":     "gonka-ai",
+    "Cocoon":    "the-open-network",  # Cocoon runs on TON network
 }
 
 def collect_token_prices() -> dict:
