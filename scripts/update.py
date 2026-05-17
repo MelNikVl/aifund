@@ -912,6 +912,92 @@ def calculate_deai_index(tokens: dict) -> dict:
     }
 
 
+
+
+# ── YouTube collector ─────────────────────────────────────────────────────────
+
+YOUTUBE_QUERIES = {
+    "OpenAI":     "OpenAI ChatGPT",
+    "Anthropic":  "Anthropic Claude AI",
+    "Google":     "Google Gemini AI DeepMind",
+    "Meta":       "Meta Llama AI",
+    "DeepSeek":   "DeepSeek AI",
+    "Mistral":    "Mistral AI",
+    "xAI":        "xAI Grok Elon",
+    "Perplexity": "Perplexity AI",
+    "Bittensor":  "Bittensor TAO crypto AI",
+    "Gensyn":     "Gensyn AI compute",
+    "Gonka":      "Gonka AI decentralized",
+}
+
+# Special channels to always monitor
+YOUTUBE_CHANNELS = {
+    "Gonka": [
+        "UCLFkGIHKEDxMGFWkFqcaHtg",  # Gonka AI / Liberman brothers if available
+    ],
+}
+
+def collect_youtube() -> dict:
+    api_key = os.environ.get("YOUTUBE_API_KEY")
+    if not api_key:
+        return {}
+    
+    print("  [youtube] fetching video stats…", file=sys.stderr)
+    results = {}
+    
+    from urllib.parse import quote
+    
+    for company, query in YOUTUBE_QUERIES.items():
+        try:
+            # Search for recent videos
+            url = (
+                f"https://www.googleapis.com/youtube/v3/search"
+                f"?part=snippet&q={quote(query)}&type=video"
+                f"&publishedAfter={(datetime.now(timezone.utc) - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                f"&order=viewCount&maxResults=10&key={api_key}"
+            )
+            data = fetch_json(url)
+            if not data or "items" not in data:
+                continue
+            
+            video_ids = [item["id"]["videoId"] for item in data["items"] if "videoId" in item.get("id", {})]
+            if not video_ids:
+                continue
+            
+            # Get view counts
+            stats_url = (
+                f"https://www.googleapis.com/youtube/v3/videos"
+                f"?part=statistics&id={','.join(video_ids)}&key={api_key}"
+            )
+            stats_data = fetch_json(stats_url)
+            if not stats_data or "items" not in stats_data:
+                continue
+            
+            total_views = 0
+            total_likes = 0
+            video_count = len(stats_data["items"])
+            
+            for item in stats_data["items"]:
+                s = item.get("statistics", {})
+                total_views += int(s.get("viewCount", 0))
+                total_likes += int(s.get("likeCount", 0))
+            
+            if video_count > 0:
+                results[company] = {
+                    "yt_videos_7d": video_count,
+                    "yt_views_7d": total_views,
+                    "yt_likes_7d": total_likes,
+                }
+                print(f"    {company}: {video_count} videos, {total_views:,} views", file=sys.stderr)
+            
+            time.sleep(0.2)
+            
+        except Exception as e:
+            print(f"    warn: youtube {company}: {e}", file=sys.stderr)
+    
+    return results
+
+
 def collect_all_signals(github_token: str | None = None) -> dict:
     """Run all collectors and merge results."""
     signals = {
@@ -926,6 +1012,7 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         "reddit":      {},
         "funding":     {},
         "crypto_ai":   {},
+        "youtube":     {},
     }
 
     try:
@@ -983,6 +1070,11 @@ def collect_all_signals(github_token: str | None = None) -> dict:
     except Exception as e:
         print(f"  warn: crypto_ai collector failed: {e}", file=sys.stderr)
 
+    try:
+        signals["youtube"]     = collect_youtube()
+    except Exception as e:
+        print(f"  warn: youtube collector failed: {e}", file=sys.stderr)
+
     # Save raw signals for debugging / sources.html
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     SIGNALS_FILE.write_text(json.dumps({
@@ -1037,6 +1129,10 @@ def build_signals_block(signals: dict) -> str:
         reddit = signals.get("reddit", {}).get(company)
         if reddit:
             parts.append(f"Reddit: {reddit['reddit_posts_7d']} posts/7d avg score {reddit['reddit_avg_score']}")
+
+        yt = signals.get("youtube", {}).get(company)
+        if yt:
+            parts.append(f"YouTube: {yt['yt_videos_7d']} videos, {yt['yt_views_7d']:,} views/7d")
 
         funding = signals.get("funding", {}).get(company)
         if funding:
