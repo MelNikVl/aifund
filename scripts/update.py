@@ -491,6 +491,128 @@ def collect_wikipedia() -> dict:
     
     return results
 
+
+
+# ── CoinGecko token prices (DeAI) ────────────────────────────────────────────
+
+COINGECKO_IDS = {
+    "Bittensor": "bittensor",
+    "Gensyn":    "gensyn",
+    "Gonka":     "gonka-ai",
+}
+
+def collect_token_prices() -> dict:
+    print("  [coingecko] fetching token prices…", file=sys.stderr)
+    ids = ",".join(COINGECKO_IDS.values())
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true&include_7d_change=true"
+    data = fetch_json(url)
+    if not data:
+        return {}
+    results = {}
+    for company, cg_id in COINGECKO_IDS.items():
+        if cg_id not in data:
+            continue
+        d = data[cg_id]
+        price = d.get("usd", 0)
+        change_24h = d.get("usd_24h_change", 0) or 0
+        change_7d  = d.get("usd_7d_change", 0) or 0
+        results[company] = {
+            "price_usd":    round(price, 4),
+            "change_24h":   round(change_24h, 2),
+            "change_7d":    round(change_7d, 2),
+        }
+        print(f"    {company}: ${price:.3f} ({change_24h:+.1f}% 24h)", file=sys.stderr)
+    return results
+
+
+# ── App Store ratings ─────────────────────────────────────────────────────────
+
+APPSTORE_IDS = {
+    "OpenAI":     "openai-chatgpt",
+    "Anthropic":  "claude-ai-anthropic",
+    "Google":     "google-gemini-ai",
+    "Perplexity": "perplexity-ask",
+}
+
+APPSTORE_SEARCH = {
+    "OpenAI":     "chatgpt openai",
+    "Anthropic":  "claude anthropic",
+    "Google":     "gemini google ai",
+    "Perplexity": "perplexity ai",
+}
+
+def collect_appstore() -> dict:
+    print("  [appstore] fetching ratings…", file=sys.stderr)
+    results = {}
+    for company, query in APPSTORE_SEARCH.items():
+        try:
+            from urllib.parse import quote
+            url = f"https://itunes.apple.com/search?term={quote(query)}&country=us&entity=software&limit=1"
+            data = fetch_json(url)
+            if not data or not data.get("results"):
+                continue
+            app = data["results"][0]
+            rating = app.get("averageUserRating", 0)
+            count  = app.get("userRatingCount", 0)
+            results[company] = {
+                "rating":       round(rating, 2),
+                "rating_count": count,
+            }
+            print(f"    {company}: {rating:.1f}★ ({count:,} ratings)", file=sys.stderr)
+        except Exception as e:
+            print(f"    warn: appstore {company}: {e}", file=sys.stderr)
+    return results
+
+
+# ── Reddit sentiment ──────────────────────────────────────────────────────────
+
+REDDIT_QUERIES = {
+    "OpenAI":     ["openai", "chatgpt"],
+    "Anthropic":  ["anthropic", "claude"],
+    "Google":     ["google gemini", "deepmind"],
+    "Meta":       ["meta llama", "llama3"],
+    "DeepSeek":   ["deepseek"],
+    "Mistral":    ["mistral ai"],
+    "xAI":        ["xai grok"],
+    "Perplexity": ["perplexity ai"],
+    "Bittensor":  ["bittensor tao"],
+    "Gensyn":     ["gensyn"],
+}
+
+REDDIT_SUBS = ["LocalLLaMA", "MachineLearning", "artificial", "OpenAI", "Singularity"]
+
+def collect_reddit_sentiment() -> dict:
+    print("  [reddit] fetching sentiment…", file=sys.stderr)
+    results = {}
+    for company, queries in REDDIT_QUERIES.items():
+        total_score = 0
+        post_count  = 0
+        for sub in REDDIT_SUBS[:3]:  # limit to 3 subs to avoid rate limits
+            for q in queries[:1]:    # one query per company
+                try:
+                    from urllib.parse import quote
+                    url = f"https://www.reddit.com/r/{sub}/search.json?q={quote(q)}&sort=new&limit=10&t=week"
+                    data = fetch_json(url, headers={"User-Agent": "AI-Pulse/1.0"})
+                    if not data or "data" not in data:
+                        continue
+                    posts = data["data"].get("children", [])
+                    for p in posts:
+                        pd = p.get("data", {})
+                        total_score += pd.get("score", 0)
+                        post_count  += 1
+                    time.sleep(0.5)
+                except Exception:
+                    pass
+        if post_count > 0:
+            avg_score = round(total_score / post_count, 1)
+            results[company] = {
+                "reddit_posts_7d":   post_count,
+                "reddit_avg_score":  avg_score,
+            }
+            print(f"    {company}: {post_count} posts, avg score {avg_score}", file=sys.stderr)
+    return results
+
+
 def collect_all_signals(github_token: str | None = None) -> dict:
     """Run all collectors and merge results."""
     signals = {
@@ -500,6 +622,9 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         "arxiv":       {},
         "hackernews":  {},
         "wikipedia":   {},
+        "tokens":      {},
+        "appstore":    {},
+        "reddit":      {},
     }
 
     try:
@@ -531,6 +656,21 @@ def collect_all_signals(github_token: str | None = None) -> dict:
         signals["wikipedia"]   = collect_wikipedia()
     except Exception as e:
         print(f"  warn: wikipedia collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["tokens"]      = collect_token_prices()
+    except Exception as e:
+        print(f"  warn: tokens collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["appstore"]    = collect_appstore()
+    except Exception as e:
+        print(f"  warn: appstore collector failed: {e}", file=sys.stderr)
+
+    try:
+        signals["reddit"]      = collect_reddit_sentiment()
+    except Exception as e:
+        print(f"  warn: reddit collector failed: {e}", file=sys.stderr)
 
     # Save raw signals for debugging / sources.html
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -574,6 +714,18 @@ def build_signals_block(signals: dict) -> str:
         wiki = signals.get("wikipedia", {}).get(company)
         if wiki:
             parts.append(f"Wikipedia: {wiki['wiki_views_7d']:,} views/7d")
+
+        token = signals.get("tokens", {}).get(company)
+        if token:
+            parts.append(f"Token: ${token['price_usd']} ({token['change_24h']:+.1f}% 24h, {token['change_7d']:+.1f}% 7d)")
+
+        app = signals.get("appstore", {}).get(company)
+        if app:
+            parts.append(f"AppStore: {app['rating']}★ ({app['rating_count']:,} ratings)")
+
+        reddit = signals.get("reddit", {}).get(company)
+        if reddit:
+            parts.append(f"Reddit: {reddit['reddit_posts_7d']} posts/7d avg score {reddit['reddit_avg_score']}")
 
         if parts:
             lines.append(f"\n{company}:")
