@@ -76,7 +76,7 @@ GITHUB_REPOS = {
     "OpenAI":     ["openai/openai-python", "openai/openai-node", "openai/whisper", "openai/chatgpt-retrieval-plugin"],
     "Anthropic":  ["anthropics/anthropic-sdk-python", "anthropics/anthropic-sdk-typescript"],
     "Google":     ["google-gemini/generative-ai-python", "google-deepmind/gemma", "google-deepmind/alphafold"],
-    "Meta":       ["meta-llama/Llama-3.2-3B-Instruct", "facebookresearch/llama", "meta-llama/llama-models"],
+    "Meta":       ["meta-llama/llama3", "facebookresearch/llama", "meta-llama/llama-models"],
     "DeepSeek":   ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-Coder-V2"],
     "Mistral":    ["mistralai/mistral-src", "mistralai/mistral-inference"],
     "xAI":        ["xai-org/grok-1"],
