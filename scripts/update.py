@@ -73,6 +73,7 @@ FEEDS = [
     "https://rss.arxiv.org/rss/cs.AI",
     "https://rss.arxiv.org/rss/cs.LG",
     "https://rss.arxiv.org/rss/cs.CL",
+    "https://www.producthunt.com/feed",
 ]
 
 # ── GitHub repos to track ─────────────────────────────────────────────────────
